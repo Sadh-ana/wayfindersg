@@ -1,0 +1,1191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>WayFinder SG</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+/* Layout concept: a journey map. A route line runs through five checkpoints (tracks); Quick Help is always one tap away. */
+:root{
+  --bg:#F7F5EF; --surface:#FFFFFF; --fg:#17202A; --muted:#55616D; --line:#DAD5C8;
+  --accent:#E95F5B; --on-accent:#17202A; --accent-soft:#FBE3E1;
+  --ok:#257A68; --ok-soft:#DDF0E9; --calm:#A8D8C8;
+  --info:#213B63; --info-soft:#E3E9F3;
+  --sun:#F3C969; --sun-soft:#FBF0D0;
+  --alert:#B83A3A; --alert-soft:#F8E2E2; --on-alert:#FFFFFF;
+  --focus:#213B63;
+  --display:"Bricolage Grotesque","Atkinson Hyperlegible",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111922; --surface:#1A2530; --fg:#EDEFF1; --muted:#A5B0BA; --line:#2C3A47;
+  --accent:#F07F7B; --on-accent:#17202A; --accent-soft:#3A2527;
+  --ok:#62C7AA; --ok-soft:#1B3A33; --calm:#2C5A4F;
+  --info:#9BB9EA; --info-soft:#1F2D44;
+  --sun:#F3C969; --sun-soft:#3B3418;
+  --alert:#F08A8A; --alert-soft:#3C2224; --on-alert:#17202A;
+  --focus:#9BB9EA; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111922; --surface:#1A2530; --fg:#EDEFF1; --muted:#A5B0BA; --line:#2C3A47;
+  --accent:#F07F7B; --on-accent:#17202A; --accent-soft:#3A2527;
+  --ok:#62C7AA; --ok-soft:#1B3A33; --calm:#2C5A4F;
+  --info:#9BB9EA; --info-soft:#1F2D44;
+  --sun:#F3C969; --sun-soft:#3B3418;
+  --alert:#F08A8A; --alert-soft:#3C2224; --on-alert:#17202A;
+  --focus:#9BB9EA; color-scheme:dark}
+
+*,*::before,*::after{box-sizing:border-box}
+html{font-size:100%}
+html.big{font-size:118%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:1rem;line-height:1.6;
+  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body.space{line-height:1.85;letter-spacing:.02em;word-spacing:.1em}
+body.calm *{animation:none!important;transition:none!important}
+.wrap{max-width:960px;margin:0 auto;padding-bottom:48px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:clamp(1.9rem,6vw,2.9rem);font-weight:800}
+h2{font-size:1.45rem;font-weight:800}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0}
+a{color:var(--info);text-underline-offset:3px}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:4px}
+.eyebrow{font-size:.78rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:700}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+.stack{display:flex;flex-direction:column;gap:16px}
+.stack-lg{display:flex;flex-direction:column;gap:28px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}
+.grid > *{min-width:0}
+.skip{position:absolute;left:-999px;top:0}
+.skip:focus{left:8px;top:8px;z-index:50;background:var(--surface);color:var(--fg);padding:10px 14px;border:2px solid var(--focus)}
+
+/* header */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line);padding-block:10px 0}
+.bar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--fg)}
+.brand svg{flex:none}
+.brand b{font-family:var(--display);font-weight:800;font-size:1.25rem;letter-spacing:-.01em}
+.brand span{display:block;font-size:.72rem;color:var(--muted);letter-spacing:.04em}
+nav.main{display:flex;gap:2px;overflow-x:auto;padding-block:6px 0;margin-top:6px;scrollbar-width:thin}
+nav.main a{white-space:nowrap;padding:9px 13px;text-decoration:none;color:var(--muted);font-weight:700;font-size:.95rem;border-bottom:3px solid transparent}
+nav.main a[aria-current="page"]{color:var(--fg);border-bottom-color:var(--accent)}
+nav.main a:hover{color:var(--fg)}
+.btn{font:inherit;font-weight:700;border:2px solid var(--fg);background:var(--surface);color:var(--fg);padding:10px 16px;border-radius:10px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;min-height:44px}
+.btn:hover{background:var(--info-soft)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{filter:brightness(.95);background:var(--accent)}
+.btn.help{background:var(--accent);border-color:var(--accent);color:var(--on-accent);min-height:44px}
+.btn.quiet{border-color:var(--line);font-weight:400}
+.btn.danger{border-color:var(--alert);color:var(--alert)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.strip{background:var(--alert);color:var(--on-alert);padding:8px 14px;border-radius:0 0 10px 10px;font-size:.92rem;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;justify-content:space-between}
+.strip a{color:inherit;font-weight:700}
+.strip b{font-family:var(--mono);font-size:1rem}
+
+/* surfaces */
+main{padding-block:24px 8px;outline:none}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+.card.tint-ok{background:var(--ok-soft);border-color:transparent}
+.card.tint-info{background:var(--info-soft);border-color:transparent}
+.card.tint-sun{background:var(--sun-soft);border-color:transparent}
+.card.tint-alert{background:var(--alert-soft);border-color:var(--alert)}
+.card.tint-calm{background:var(--ok-soft);border-color:var(--calm)}
+.link-card{display:flex;flex-direction:column;gap:8px;text-decoration:none;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.link-card:hover{border-color:var(--fg)}
+.link-card h3{color:var(--fg)}
+.badge{display:inline-block;font-size:.74rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:99px;border:1px solid var(--line);color:var(--muted);background:var(--surface)}
+.badge.ok{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.badge.sun{background:var(--sun-soft);color:var(--fg);border-color:transparent}
+.badge.info{background:var(--info-soft);color:var(--info);border-color:transparent}
+.badge.alert{background:var(--alert-soft);color:var(--alert);border-color:transparent}
+.hero{display:grid;gap:22px;grid-template-columns:1.25fr 1fr;align-items:center;padding-block:6px 10px}
+.hero > *{min-width:0}
+.hero p.lead{font-size:1.15rem;max-width:34ch;color:var(--muted)}
+@media (max-width:760px){.hero{grid-template-columns:1fr}}
+.pilot{border:1px dashed var(--muted);border-radius:12px;padding:10px 14px;font-size:.9rem;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:inherit;border:2px solid var(--line);background:var(--surface);color:var(--fg);border-radius:99px;padding:8px 14px;cursor:pointer;min-height:44px}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.num{font-family:var(--mono);font-size:1.5rem;font-weight:700;letter-spacing:.02em}
+.big-num{font-family:var(--mono);font-size:clamp(2rem,9vw,3.2rem);font-weight:700;line-height:1}
+.call{display:grid;gap:6px;border-radius:14px;padding:18px;border:2px solid var(--fg);background:var(--surface)}
+.call.red{border-color:var(--alert);background:var(--alert-soft)}
+.call .who{font-weight:700}
+
+/* scenario */
+.rail{display:flex;gap:6px;flex-wrap:wrap;list-style:none;padding:0;margin:0}
+.rail li{font-size:.78rem;font-weight:700;padding:5px 10px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+.rail li[aria-current="step"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.rail li.done{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.msg{border-left:5px solid var(--info);background:var(--info-soft);border-radius:4px 12px 12px 4px;padding:12px 16px;font-family:var(--mono);font-size:.95rem;overflow-wrap:anywhere}
+.opts{display:grid;gap:10px}
+.opt{font:inherit;text-align:left;border:2px solid var(--line);background:var(--surface);color:var(--fg);border-radius:12px;padding:13px 16px;cursor:pointer;min-height:48px;width:100%}
+.opt:hover:not([disabled]){border-color:var(--fg)}
+.opt[disabled]{cursor:default}
+.opt.chosen-ok{border-color:var(--ok);background:var(--ok-soft)}
+.opt.chosen-no{border-color:var(--alert);background:var(--alert-soft)}
+.opt.was-ok{border-color:var(--ok);border-style:dashed}
+
+.who-tag{font-family:var(--mono);font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
+.real-tag{border-left:4px solid var(--fg);padding:6px 12px;font-size:.92rem;background:var(--sun-soft,transparent)}
+.chat{display:grid;gap:6px;padding:14px;background:var(--chat-bg,rgba(127,127,127,.09));border-radius:14px;max-width:560px}
+.chat p{margin:0;padding:8px 12px;border-radius:14px;max-width:86%;font-size:.97rem;line-height:1.4;overflow-wrap:anywhere}
+.c-them{justify-self:start;background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:4px}
+.c-me{justify-self:end;background:var(--fg);color:var(--bg);border-bottom-right-radius:4px}
+.c-sys{justify-self:center;font-family:var(--mono);font-size:.72rem!important;color:var(--muted);text-align:center;max-width:100%!important;padding:2px 8px!important}
+.c-n{display:block;font-size:.7rem;font-weight:700;opacity:.65;margin-bottom:1px}
+.opt.chosen-mid{border-color:var(--sun,#b8860b);background:var(--sun-soft,rgba(184,134,11,.12))}
+.mark.mid{background:var(--sun,#b8860b);color:var(--surface)}
+.say{margin:2px 0 0;padding:10px 14px;border-left:4px solid var(--fg);background:var(--surface);font-size:.95rem;font-style:italic}
+.say-l{display:block;font-family:var(--mono);font-style:normal;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+
+.chat.anim p{animation:cIn .32s cubic-bezier(.2,.8,.2,1) both}
+@keyframes cIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+.c-typing{justify-self:start;display:flex!important;gap:4px;padding:11px 14px!important;background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:4px}
+.c-typing i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:cDot 1s infinite}
+.c-typing i:nth-child(2){animation-delay:.15s}.c-typing i:nth-child(3){animation-delay:.3s}
+@keyframes cDot{0%,60%,100%{opacity:.3;transform:none}30%{opacity:1;transform:translateY(-3px)}}
+.gate-hide{opacity:0;pointer-events:none;transform:translateY(6px)}
+.gate-show{transition:opacity .35s,transform .35s}
+.chat-skip{font-size:.72rem;color:var(--muted);font-family:var(--mono);text-align:right}
+@media (prefers-reduced-motion:reduce){.chat.anim p{animation:none}.c-typing i{animation:none}}
+.verdict{display:flex;gap:10px;align-items:flex-start}
+.mark{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:.95rem}
+.mark.ok{background:var(--ok);color:var(--surface)}
+.mark.no{background:var(--alert);color:var(--on-alert)}
+.callout{border-radius:12px;padding:14px 16px}
+
+/* forms */
+label{font-weight:700;font-size:.92rem}
+input[type=number],input[type=text],select,textarea{font:inherit;color:var(--fg);background:var(--surface);border:2px solid var(--line);border-radius:10px;padding:9px 12px;width:100%;min-height:44px}
+textarea{min-height:110px;resize:vertical}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.fields{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,180px),1fr))}
+.fields > *{min-width:0}
+.check{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-weight:400;font-size:1rem}
+.check input{width:22px;height:22px;flex:none;margin-top:2px;accent-color:var(--ok)}
+.check span{min-width:0}
+.check.on{background:var(--ok-soft);border-color:transparent}
+.bar-track{height:10px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar-fill{height:100%;background:var(--ok);border-radius:99px}
+.out{font-family:var(--mono);font-variant-numeric:tabular-nums}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.78rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+td.r,th.r{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.scroll-x{overflow-x:auto}
+
+/* source card */
+.src{border:1px solid var(--ok);border-radius:14px;padding:16px;background:var(--surface);display:flex;flex-direction:column;gap:8px}
+.src dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;margin:0;font-size:.9rem}
+.src dt{color:var(--muted);font-weight:700}
+.src dd{margin:0;min-width:0;overflow-wrap:anywhere}
+@media (max-width:520px){.src dl{grid-template-columns:1fr}.src dt{margin-top:6px}}
+.src .t{font-weight:700;overflow-wrap:anywhere}
+.map-wrap{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 8px 6px;overflow-x:auto}
+.map-wrap svg{display:block;width:100%;min-width:560px;height:auto}
+.node-label{font-family:var(--body);font-size:13px;font-weight:700;fill:var(--fg)}
+.node-state{font-family:var(--body);font-size:11px;fill:var(--muted)}
+footer{border-top:1px solid var(--line);padding-top:18px;margin-top:30px;font-size:.88rem;color:var(--muted);display:grid;gap:8px}
+details>summary{cursor:pointer;font-weight:700;min-height:32px}
+.tag-row{display:flex;gap:6px;flex-wrap:wrap}
+.prog{font-size:.9rem;color:var(--muted)}
+@media (prefers-reduced-motion: no-preference){.card,.link-card{transition:border-color .15s}}
+</style>
+<style id="skin">
+:root{--bg:#F3EFE6;--surface:#FBF8F1;--fg:#14110F;--muted:#5E574F;--line:#CFC7B6;--accent:#D6112F;--on-accent:#FFFFFF;--accent-soft:#F8D9DD;--ok:#00873C;--ok-soft:#D5F2DF;--calm:#BFE3D0;--info:#0B5CAD;--info-soft:#D9E7F6;--sun:#F2B600;--sun-soft:#FBEBB5;--alert:#D6112F;--alert-soft:#F8D9DD;--on-alert:#FFFFFF;--focus:#D6112F;--display:"Bricolage Grotesque","Atkinson Hyperlegible",system-ui,sans-serif;--mono:"Martian Mono",ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#100F0D;--surface:#1B1916;--fg:#F3EFE6;--muted:#A59E92;--line:#38332C;--accent:#FF5A6E;--on-accent:#14110F;--accent-soft:#3A2023;--ok:#2FD17B;--ok-soft:#15321F;--calm:#1F4A36;--info:#5AA4FF;--info-soft:#14283F;--sun:#F7C531;--sun-soft:#3A3010;--alert:#FF5A6E;--alert-soft:#3A2023;--on-alert:#14110F;--focus:#FF5A6E;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#100F0D;--surface:#1B1916;--fg:#F3EFE6;--muted:#A59E92;--line:#38332C;--accent:#FF5A6E;--on-accent:#14110F;--accent-soft:#3A2023;--ok:#2FD17B;--ok-soft:#15321F;--calm:#1F4A36;--info:#5AA4FF;--info-soft:#14283F;--sun:#F7C531;--sun-soft:#3A3010;--alert:#FF5A6E;--alert-soft:#3A2023;--on-alert:#14110F;--focus:#FF5A6E;color-scheme:dark}
+h1,h2,h3{font-variation-settings:"wdth" 82;letter-spacing:-.02em;font-weight:800}
+.card,.link-card,.btn,.callout,.msg,input,select,textarea{border-radius:0!important}
+.card,.link-card{border:2.5px solid var(--fg)!important;box-shadow:5px 5px 0 var(--fg)}
+.btn{border:2.5px solid var(--fg)!important;box-shadow:4px 4px 0 var(--fg);transition:transform .12s,box-shadow .12s}
+.btn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--fg)}
+.msg{border-left:5px solid var(--accent)}
+body::after{content:"";position:fixed;inset:0;z-index:400;pointer-events:none;opacity:.06;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .2  0 0 0 0 .17  0 0 0 0 .14  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;800;900&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,700;0,800;1,500&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="assets/scam-skin.css"><script>try{var _s=JSON.parse(localStorage.getItem("wf2.state"));if(_s&&_s.theme==="light"&&!localStorage.getItem("wfl.theme"))document.documentElement.setAttribute("data-theme","light")}catch(e){}</script></head>
+<body><nav class="wfbar" aria-label="WayFinder SG"><a href="index.html">WayFinder SG home</a><a href="scam-shield/index.html">Scam Shield</a><a href="guides/scams-basics/index.html">Scam basics guide</a><a href="sources/index.html">Sources</a></nav>
+
+
+<button class="skip btn" id="skip" type="button">Skip to content</button>
+<div class="wrap">
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="#home" aria-label="WayFinder SG home">
+        <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><path d="M4 26 C 10 26, 8 10, 17 10 S 24 24, 30 8" fill="none" stroke="var(--fg)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="1 5"/><circle cx="4" cy="26" r="4" fill="var(--ok)"/><circle cx="17" cy="10" r="4" fill="var(--sun)"/><circle cx="30" cy="8" r="4" fill="var(--accent)"/></svg>
+        <div><b>WayFinder SG</b><span>PILOT BUILD · LEARNING LAYER</span></div>
+      </a>
+      <div class="row">
+        <button class="btn quiet" id="theme" type="button" aria-label="Change colour theme">Theme: Auto</button>
+        <a class="btn help" href="#help">I need help now</a>
+      </div>
+    </div>
+    <nav class="main" id="nav" aria-label="Main"></nav>
+  </header>
+  <div class="strip" role="region" aria-label="Emergency numbers">
+    <span>Emergency: Police <b>999</b> · Ambulance or fire <b>995</b></span>
+    <a href="#help-emergency">What to do</a>
+  </div>
+  <main id="app" tabindex="-1"></main>
+  <footer>
+    <p>WayFinder SG is a student-made learning project. It is not a government service, legal adviser, financial adviser, medical adviser or emergency service, and it never dispatches help. In an emergency call 999 or 995.</p>
+    <p>No account. Saved progress, notes and checklists stay in this browser only. <a href="#about">Method and corrections</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="index.html">Overview</a></p>
+  </footer>
+</div>
+
+<script>
+(function(){
+'use strict';
+var REVIEWED='7 Nov 2026';
+var REVIEWER='Student creator, sources checked 7 Nov 2026. Qualified adult review: pending.';
+var $=function(s,r){return (r||document).querySelector(s)};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function money(n){return '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+
+/* ---------- storage (local only) ---------- */
+function def(){return {progress:{},checks:{},notes:'',contacts:{},prefs:{theme:'auto',big:false,space:false,calm:false},prepost:{},corrections:[],budget:null,mission:{},explored:{},support:{}}}
+var S=def();
+try{var raw=localStorage.getItem('wfsg.v1');if(raw){var p=JSON.parse(raw);for(var k in p){S[k]=p[k]}}}catch(e){}
+function save(){try{localStorage.setItem('wfsg.v1',JSON.stringify(S))}catch(e){}}
+
+/* ---------- sources (every sensitive claim traces here) ---------- */
+var SRC={
+ spf:{org:'Singapore Police Force',t:'Change of Police Emergency SMS sender ID from 71999 to 70999',u:'https://www.police.gov.sg/Media-Room/News/20240927_change_of_police_emergency_sms_sender_id_from_71999_to_70999',
+  cov:'Police emergency SMS is now 70999 (from 1 Oct 2024). It is for emergencies where talking is unsafe, and for people who are deaf, mute or have a speech impairment. Lists 999 for emergencies.',
+  not:'Does not explain what to say in an SMS or when to prefer a call.'},
+ mha:{org:'Ministry of Home Affairs',t:'1777 non-emergency ambulance hotline to cease from 1 January 2027',u:'https://www.mha.gov.sg/media-room/newsroom/1777-non-emergency-ambulance-hotline-to-cease-from-1-january-2027/',
+  cov:'995 is for life-threatening emergencies. The 1777 hotline ends on 1 Jan 2027. NurseFirst (6262 6262) gives advice for non-emergencies. Private ambulance operators are listed at go.gov.sg/pao.',
+  not:'Does not name a replacement hotline for booking non-emergency transport. Does not list fees.'},
+ mind:{org:'NHG Health, Institute of Mental Health',t:'IMH discontinues its Mental Health Helpline with the launch of national mindline 1771',u:'https://www.nhghealth.com.sg/imh/about-us/news/imh-discontinues-its-mental-health-helpline-number-with-the-launch-of-national-mindline-1771',
+  cov:'National mindline 1771 launched 18 Jun 2025: call 1771, WhatsApp 6669-1771, webchat at mindline.sg/fsmh. The old IMH helpline 6389 2222 was retired and forwarded to 1771 until 30 Sep 2025.',
+  not:'Does not state operating hours or who runs the service. Does not list other support services.'},
+ act:{org:'ScamShield (NCPC and Singapore Police Force)',t:'I can ACT against scams: Add, Check, Tell',u:'https://www.scamshield.gov.sg/get-involved/i-can-act-campaign/',
+  cov:'Add the ScamShield app and security features. Check with the official organisation through its official hotline. Tell your bank (kill-switch), the police and people you know. Agencies and banks do not send links asking for personal or banking details, and officials never ask you to transfer money by phone.',
+  not:'Does not describe every scam type or give a test that proves a message is genuine.'},
+ shh:{org:'ScamShield',t:'ScamShield helpline 1799',u:'https://www.scamshield.gov.sg/check-for-scams/scamshield-helpline/',
+  cov:'1799 runs 24/7 (from overseas +65 6869 1799). Use it to check if something is a scam, get connected to your bank if you were scammed, and get protection advice.',
+  not:'It does not take police reports, handle frozen account updates or deal with non-scam matters.'},
+ sg:{org:'ScamShield',t:'Help, I\'ve been scammed',u:'https://guide.scamshield.gov.sg/resources/help-ive-been-scammed',
+  cov:'File a police report through the police e-services portal and get advice from NCPC officers on the 1799 helpline.',
+  not:'Does not list bank contacts or Anti-Scam Centre details.'},
+ cpf:{org:'CPF Board',t:'How much CPF contributions to pay',u:'https://www.cpf.gov.sg/employer/employer-obligations/how-much-cpf-contributions-to-pay',
+  cov:'From 1 Jan 2026, for employees aged 55 and below with total monthly wages above $750 (Singapore Citizens, and PRs from their third year): employer 17%, employee 20%, total 37%. No employee share for wages above $50 and up to $500.',
+  not:'Rates differ by age, citizenship or PR year and wage band. The 2026 wage ceilings were not confirmed on this page.'},
+ iras:{org:'IRAS',t:'Individuals required to file tax',u:'https://www.iras.gov.sg/taxes/individual-income-tax/basics-of-individual-income-tax/understanding-my-income-tax-filing/individuals-required-to-file-tax',
+  cov:'Generally file if total income in the previous calendar year was above $22,000, if you are self-employed with net profit above $6,000, or if you are a non-resident with Singapore income not under withholding tax. If IRAS tells you to file, file whatever you earned. Deadline 18 Apr; extension of up to 14 days on myTax Portal. People on the No-Filing Service need not file.',
+  not:'Does not calculate tax. Definitions of income and net profit are in IRAS guidance.'},
+ kets:{org:'Ministry of Manpower',t:'Key employment terms (KETs)',u:'https://www.mom.gov.sg/employment-practices/contract-of-service/key-employment-terms',
+  cov:'The 18 items KETs must include, unless not applicable. Optional: place of work.',
+  not:'This page does not state the issue deadline or who is covered. See the two MOM FAQs below.'},
+ kets14:{org:'Ministry of Manpower',t:'FAQ: Why must I issue written KETs within 14 days of first day of work?',u:'https://www.mom.gov.sg/faq/key-employment-terms/why-must-i-issue-written-kets-within-14-days-of-my-employees-first-day-of-work-instead-of-before-their-first-day-of-work',
+  cov:'Written KETs are due within 14 days of the employee\'s first day of work.',not:'Does not cover who is excluded from the Employment Act.'},
+ ketspt:{org:'Ministry of Manpower',t:'FAQ: Do I have to issue KETs to my part-time employees?',u:'https://www.mom.gov.sg/faq/key-employment-terms/do-i-have-to-issue-kets-to-my-part-time-employees',
+  cov:'Part-time employees are included if covered by the Employment Act, employed on or after 1 Apr 2016, on a contract of service of 2 weeks or longer. No minimum hours.',not:'Does not say who is outside the Employment Act.'},
+ slip:{org:'Ministry of Manpower',t:'Itemised payslips',u:'https://www.mom.gov.sg/employment-practices/salary/itemised-payslips',
+  cov:'The 12 items an itemised payslip must show (where they apply). Give it with payment, or within 3 working days of payment. Soft or hard copy, including handwritten, is fine.',
+  not:'Does not define which employees are covered by the Employment Act.'},
+ cea:{org:'Council for Estate Agencies',t:'Renting an HDB flat or bedroom (tenant)',u:'https://cea.gov.sg/consumers/transacting-on-your-own/renting-an-hdb-flat-or-bedroom',
+  cov:'Tenant conditions (citizen, PR, or a non-citizen with a qualifying pass valid at least 6 months from the owner\'s application), minimum rental of 6 months, tourists cannot rent, tenant checklist and template, terms can be negotiated, dispute options.',
+  not:'Does not cover deposits, stamp duty, checking ownership or scams. CEA only acts on disputes involving an agent.'},
+ ms:{org:'MoneySense',t:'MoneySense (directory link)',u:'https://www.moneysense.gov.sg',cov:'National financial education programme. Use it for budgeting guidance.',not:'This project has not yet reviewed specific MoneySense pages. Treat as a starting point.',dir:true}
+};
+var SVC={
+ mom:['Ministry of Manpower','https://www.mom.gov.sg','Employment rules, contracts, pay'],
+ workright:['Workright (MOM)','https://www.mom.gov.sg/employment-practices/employment-act/workright','Know your employment rights'],
+ cpf:['CPF Board','https://www.cpf.gov.sg','CPF contributions and accounts'],
+ iras:['IRAS','https://www.iras.gov.sg','Income tax and myTax Portal'],
+ hdb:['HDB','https://www.hdb.gov.sg','Public housing and renting'],
+ cea:['CEA: renting an HDB flat or bedroom',SRC.cea.u,'Tenant conditions and disputes'],
+ singpass:['Singpass','https://www.singpass.gov.sg','Official digital identity'],
+ shield:['ScamShield','https://www.scamshield.gov.sg','Check scams, 1799 helpline'],
+ eport:['Police e-Report','https://eservices1.police.gov.sg/phub/eservices/homepage','File a police report online'],
+ sgw:['SupportGoWhere','https://supportgowhere.life.gov.sg/','Find social support schemes'],
+ ms:['MoneySense','https://www.moneysense.gov.sg','Money and budgeting guidance'],
+ ica:['ICA','https://www.ica.gov.sg','Identity cards and passports'],
+ mind:['National mindline 1771','https://mindline.sg/fsmh','Mental health support, webchat']
+};
+
+/* ---------- lessons ---------- */
+var TRACKS=[
+ {id:'money',name:'Money',tag:'Make your first money work for you',out:'Read a payslip, understand CPF deductions and know when to file tax.',rule:'Money content rule: no investment recommendations, product promotion or personal affordability verdicts. Examples use fictional people and numbers.',sc:['payslip','tax'],list:'budget'},
+ {id:'docs',name:'Documents & Digital Identity',tag:'Know what exists, what it does and where to get it',out:'Protect your Singpass and personal details and know where to check.',rule:'Documents rule: this site never asks you to upload passports, identity cards, bank statements, Singpass credentials, medical records or legal documents.',sc:['singpass','mule'],list:'scam'},
+ {id:'safety',name:'Safety & Well-being',tag:'Know what to do when something goes wrong',out:'Tell emergencies from non-emergencies, spot scams and find support.',rule:'Safety rule: this site is not a crisis service and never simulates emergency dispatch. For emergencies call 999 or 995.',sc:['scams','tickets','emergency'],list:'contacts'},
+ {id:'work',name:'Work & Rights',tag:'Enter work without entering blind',out:'Read a contract and a payslip and know who to ask when something looks wrong.',rule:'Work rule: coverage and eligibility can depend on worker status, age, nationality, sector and current law.',sc:['contract','payrights'],list:'job'},
+ {id:'housing',name:'Housing & Independence',tag:'Plan the move before the move plans you',out:'Estimate a realistic move-out budget and spot rental red flags.',rule:'Housing rule: this site does not decide your legal eligibility, recommend financial products or replace reading a contract.',sc:['budget','rental'],list:'moving'}
+];
+var TR={};TRACKS.forEach(function(t){TR[t.id]=t});
+
+/* ---- new sources (checked against the police and MOM pages on 10 Nov 2026) ---- */
+Object.assign(SRC,{
+ momcpf:{org:"Ministry of Manpower",t:"Employers' CPF contributions",u:"https://www.mom.gov.sg/employment-practices/central-provident-fund/employers-contributions",
+  cov:"Employers must pay CPF for employees who are Singapore citizens or PRs, including part-time and casual staff. It is compulsory at the rates in the CPF Act. MOM lists late-payment interest and, for a first offence of non-payment, a fine of $1,000 to $5,000, up to 6 months' jail, or both.",
+  not:"Does not cover foreign employees' levies in detail, or how to complain."},
+ momsep:{org:"Ministry of Manpower",t:"FAQ: contract of service or contract for service?",u:"https://www.mom.gov.sg/faq/contract-of-service/how-do-i-know-if-i-am-engaged-under-a-contract-of-service-or-contract-for-service",
+  cov:"Whether you are an employee or self-employed 'depends on the actual relationship between you and the company'. Employees get benefits such as leave and CPF. For self-employed people the Employment Act does not apply and the company does not pay CPF. MOM points to a self-assessment tool.",
+  not:"Does not list the tests used, and does not say outright that a job title or contract label cannot decide it."},
+ momdisp:{org:"Ministry of Manpower",t:"Managing employment disputes (TADM)",u:"https://www.mom.gov.sg/employment-practices/managing-employment-disputes",
+  cov:"Starting point for pay and employment disputes.",not:"This project has not yet reviewed this page in detail. Treat it as a starting point and read it before you act.",dir:true},
+ spfsp:{org:"Singapore Police Force",t:"Police and GovTech intervention dismantles Singpass compromise scheme (26 Aug 2026)",u:"https://www.police.gov.sg/Media-Hub/News/2026/08/20260826_police_and_govtech_intervention_dismantles_singpass_compromise_scheme",
+  cov:"Describes accounts compromised at a phone shop, and says some people 'voluntarily relinquished their Singpass credentials' and are still being investigated. Advice: do not accept quick money for your Singpass or credentials, never disclose passwords or 2FA details to unknown persons, report to 1800-255-0000 or police.gov.sg/i-witness, call 1799 if unsure. Cites s8A(1) Computer Misuse Act: fine up to $10,000, jail up to 3 years, or both.",
+  not:"Does not say what to do step by step if you already handed over your login."},
+ spfjob:{org:"Singapore Police Force",t:"Advisory: resurgence of job scams involving online tasks relating to trading cards (14 Sep 2026)",u:"https://www.police.gov.sg/Media-Hub/News/2026/09/20260914_police_advisory_on_resurgence_of_job_scams_involving_online_tasks_relating_to_trading_cards",
+  cov:"At least 12 reported cases and at least $71,000 lost since 25 Aug 2026. Victims are contacted by unsolicited messages or calls. 'Some victims may initially receive small payouts', then are asked for crypto transfers or deposits to unlock tasks, clear negative balances, restore accounts or withdraw earnings. Check with 1799 and the ScamShield app. Tell your bank immediately.",
+  not:"Does not list every platform used or give recovery steps."},
+ spfmule:{org:"Singapore Police Force",t:"17 persons to be charged for suspected involvement in scam-related money mule activities (2 Nov 2025)",u:"https://www.police.gov.sg/Media-Hub/News/2025/11/20251102_17_persons_to_be_charged_for_suspected_involvement_in_scam_related_money_mule_activities",
+  cov:"Penalties named include s55A(5) of the Corruption, Drug Trafficking and Other Serious Crimes (Confiscation of Benefits) Act (up to 3 years' jail, a fine, or both) and s8(1) of the Computer Misuse Act (up to 3 years, a fine, or both). Police urge people to reject attractive money-making offers with fast, easy pay-outs, and to avoid letting others use their Singpass or bank accounts, including to receive and move money.",
+  not:"Does not describe how the court decides a sentence for a young first-time offender."},
+ spftix:{org:"Singapore Police Force",t:"Advisory: scams involving sale of BTS concert tickets (6 Jun 2026)",u:"https://www.police.gov.sg/Media-Hub/News/2026/06/20260606_police_advisory_on_scams_involving_the_sale_of_bts_world_tour_arirang_concert_tickets",
+  cov:"At least 14 cases and at least $11,000 lost since 1 Jun 2026. Fake listings on X, Instagram and Carousell, payment by PayNow, then extra 'administrative fees'. Ticketmaster's terms say tickets cannot be transferred or resold, and resale tickets may be refused entry without a refund. Buy only from authorised sellers; call 1799 if unsure.",
+  not:"Specific to one event. Other events have their own terms, so read the organiser's."}
+});
+
+function P(t,r,c,w,say){return {t:t,ok:r===2,r:r,c:c,w:w,say:say||""}}
+
+var SCEN=[
+/* ============ MONEY ============ */
+{id:"payslip",track:"money",title:"The “cash in hand” offer",min:6,risk:"medium",tool:"cpf",list:"job",src:["cpf","slip","momcpf"],
+ who:"Composite story. Farah, 19, first full-time job at a bubble tea shop in a mall.",
+ real:"MOM: employers must pay CPF for employees who are citizens or PRs. For a first offence of not paying, the fine is $1,000 to $5,000, up to 6 months' jail, or both.",
+ sit:"Farah finished her A-levels in November and took a full-time job at a bubble tea shop. Her contract says a basic salary of $2,500 a month. It is day 31. She has never read a payslip before.",
+ assume:"This lesson assumes Farah is a Singapore Citizen, 55 or below, earning above $750 a month. Rates differ by age and status.",
+ obj:"Read a payslip line by line, and see why “cash, no CPF” is worth less than it sounds.",
+ dp:"Your boss offers you more take-home if you skip a legal requirement. What do you say, and what do you not want to say?",
+ steps:[
+  {thread:[["sys","Day 31, 9:02 am"],["sys","DBS: Salary credit $2,000.00 from OLLO TEA PTE LTD"],["me","wait why 2000 and not 2500??"],["Jun Wei","CPF lah. Look at your payslip, got one line"],["me","what payslip"],["Jun Wei","the PDF HR sent. check email"]],
+   q:"The bank says $2,000. Your contract says $2,500. What do you do first?",o:[
+   P("Open the payslip PDF and look for what was taken out before messaging anyone.",2,"There it is: “Employee CPF contribution 20%: $500.” $2,500 minus $500 is $2,000. The numbers close, which is the fastest way to know nobody made a mistake.","Net pay is gross pay minus your deductions. Employees 55 and below on wages above $750 a month pay 20% into their own CPF account.","Quick check before you ask: gross - deductions = what the bank shows."),
+   P("Message the manager: “why am I short $500?”",1,"Desmond replies “check payslip” with a thumbs up. Nothing bad happens, but you asked a question the page already answered, and it sounded like an accusation on day 31.","Ask by all means, but look first. A better question is: “I can see the 20% CPF line. Can you confirm the other lines?”","Hi Desmond, I've got my payslip. The CPF line makes sense. Can you explain the line called “Other”?"),
+   P("Assume the shop kept it and tell your mum.",0,"Mum rings the shop at 9am. Desmond is confused, you are mortified, and the money was in your own CPF account all along.","Your 20% is not taken by the employer. It goes into your CPF account.","")]},
+  {thread:[["sys","Day 34, 3:40 pm, the back room"],["Desmond","Eh Farah, small thing. I can pay you $2,300 cash each month instead. No CPF, no deduction. You take home more, better right?"],["Desmond","Last time some staff also like this. Is okay one."],["Jun Wei","(whispers) dun get involved lah, he asks everyone"]],
+   q:"$2,300 cash sounds like $300 more than $2,000. What do you say?",o:[
+   P("“Thanks, but I'd rather stay on payroll with CPF and a payslip.”",2,"He shrugs. “Ok lor, just asking.” Nothing changes. Boring is the best result here.","The maths: on payroll your take-home is $2,000, and $925 a month goes into CPF ($500 yours, $425 the employer's). That is $2,925 of value, against $2,300 in cash. The employer's $425 was never his to trade.","Thanks Desmond, but I'd like to stay on CPF and a payslip. Can we leave it as it is?"),
+   P("“Let me think about it,” then ask Jun Wei what happened to the others.",1,"Jun Wei says “some did, I dunno long term.” You bought time, but you also told the staff group chat you're asking, and you still have no answer.","Buying time is fine. You still need to know the CPF contribution is compulsory for employees who are citizens or PRs.",""),
+   P("“Okay, take-home is higher.”",0,"The extra $300 is real. So is the $925 a month that stops going into your CPF, and so is the fact that you now have no payslip showing what you were paid.","MOM says employers must pay CPF for employees who are citizens or PRs. Agreeing to skip it does not make it legal, and it leaves you with no record.","")]},
+  {thread:[["sys","Day 38, payslip for last month arrives"],["me","I closed on Sat till 11:30pm, that's 5 extra hours"],["me","payslip got no overtime line leh"]],
+   q:"Five extra hours are not on the payslip. Best first move?",o:[
+   P("Write down the dates and hours, then ask Desmond privately for a quick check.",2,"He checks the roster. Either it was paid under another line or he corrects it. You kept your own record, so it was a conversation, not an argument.","An itemised payslip must show overtime hours and pay where they apply. Whether overtime applies depends on who is covered, so ask first, with dates.","Hi Desmond, on Sat 8 Nov I stayed till 11:30pm. I can't see overtime on my payslip. Can you check if it's under another line?"),
+   P("Ask in the staff group chat whether anyone else got overtime.",1,"Two people say no. Desmond sees the thread. Now it is a staff issue instead of a question, and he is defensive.","Group chats make a simple question public. Ask one person first.",""),
+   P("Say nothing. You don't want trouble.",0,"The hours are never paid or explained, and next month it happens again.","Asking a calm question with dates is normal and not a threat.","")]}
+ ],
+ chk:[{q:"On a $2,500 salary under this lesson's rates, how much goes into Farah's CPF in total each month, from her and the employer together?",o:["$500","$925","$425"],a:1,w:"$500 (hers, 20%) plus $425 (the employer's, 17%) is $925."},
+      {q:"Farah's take-home is $2,000 and $925 goes into her CPF. Her boss offers $2,300 cash with no CPF. How much less is the cash offer in total value?",o:["$300 more","$625 less","The same"],a:1,w:"$2,000 + $925 = $2,925 of value. $2,925 - $2,300 = $625 less, and she also loses the payslip."}],
+ take:"Net pay is gross minus your own 20%. The employer's 17% sits on top. “Cash, no CPF” sounds like a raise, but here it is $625 a month less, and it removes your payslip."},
+
+{id:"tax",track:"money",title:"The “under $22,000” myth",min:6,risk:"medium",tool:null,list:"job",src:["iras"],
+ who:"Composite story. Wei Ling, 21, university student with a tutoring job and a sticker side-hustle.",
+ real:"IRAS: generally file if total income last year was above $22,000, or if you are self-employed with net profit above $6,000.",
+ sit:"Wei Ling tutored for $9,800 last year. She also sold stickers and commissions on Instagram: $8,900 in sales, $1,900 in materials and postage. It is early April and her friend says nobody under $22,000 has to file.",
+ assume:"This is not tax advice. IRAS decides what counts as income or net profit. Numbers are examples.",
+ obj:"Tell which filing rule applies to which income, and find where IRAS says so.",
+ dp:"Where would you look to check, and who would you ask before the deadline?",
+ steps:[
+  {thread:[["Aisha","bro under 22k no need file one lah"],["Aisha","everyone knows, my cousin also never file"],["me","(Notes app) tutoring 9,800. stickers sales 8,900. materials+postage 1,900"],["me","total 18,700?"]],
+   q:"Aisha says under $22,000 means no filing. What should Wei Ling do?",o:[
+   P("Check which rule applies to each kind of income on IRAS's page, instead of going by the 22k number alone.",2,"IRAS lists two separate tests. The $22,000 one is for total income. A self-employed person with net profit above $6,000 is also expected to file. Her sticker profit is $7,000, so the second test catches her even though her total is lower.","The $22,000 rule is not the only rule. Self-employed people with net profit above $6,000 generally file as well.","I've read the IRAS page. I think the sticker income counts as self-employed. I'm filing this year."),
+   P("Wait for IRAS to send a letter.",1,"A notice may or may not arrive. Waiting turns a simple task into a deadline scramble. If IRAS tells you to file, you file whatever you earned.","IRAS guidance says that if IRAS tells you to file, you file. Do not rely on a letter showing up in time.",""),
+   P("Don't file. Total income is under $22,000.",0,"Wei Ling skips it. Later she finds out the profit rule applied. IRAS can follow up, and late filing can lead to penalties. Check IRAS for the current ones.","The 22k rule is for total income. The self-employed rule is separate.","")]},
+  {thread:[["Sister","you put the 8,900 or the 7,000?"],["me","idk. which one is income"],["me","also I bought an iPad for 1,400 for drawing. also for school. can I count it?"]],
+   q:"Which figure goes on the self-employed line, and what about the iPad?",o:[
+   P("Net profit: sales minus business costs she can show receipts for. Ask IRAS about the mixed-use iPad before claiming it.",2,"$8,900 minus $1,900 is $7,000. The iPad is a grey area because she also uses it for school, so she keeps the receipt and checks IRAS's guidance instead of guessing.","The filing rule is about net profit, not sales. IRAS guidance defines what counts as an allowable business cost.","Is a device I use for both school and my business partly claimable? Where does IRAS explain it?"),
+   P("Take off everything she bought this year, including the iPad.",1,"Her profit drops under $6,000 on paper. If IRAS asks, she has to defend an expense that is half personal. Mixed-use items are where people get into trouble.","IRAS decides what is allowable. Do not subtract things just because the number looks better.",""),
+   P("Put in the full $8,900.",0,"She would be reporting profit she never had, and pay more than she should.","Tax is about profit, not sales.","")]},
+  {thread:[["sys","15 April, 11:48 pm"],["me","filing closes the 18th right"],["me","I haven't done anything lol"]],
+   q:"Three days left and she hasn't started. What now?",o:[
+   P("Log in to myTax Portal tomorrow and file with her records. If something is missing, ask IRAS.",2,"She files, notices a field she was unsure about, and checks IRAS's guidance. Done before the deadline.","IRAS's deadline is 18 April. File early enough to fix what you find.",""),
+   P("Apply for the extension on myTax Portal.",1,"An extension of up to 14 days is available through myTax Portal. It buys time, but the work is still waiting. Use it if you need records, not because you're avoiding it.","IRAS allows an extension of up to 14 days on myTax Portal.",""),
+   P("Ignore it.",0,"The deadline passes. IRAS can follow up.","Missing the deadline makes a simple process harder.","")]}
+ ],
+ chk:[{q:"Wei Ling's sales were $8,900 and costs $1,900. What is her net profit?",o:["$8,900","$7,000","$10,800"],a:1,w:"$8,900 - $1,900 = $7,000."},
+      {q:"Her total income is under $22,000. Why might she still need to file?",o:["Students always file","Self-employed net profit above $6,000 triggers filing on its own","Instagram income is always taxed"],a:1,w:"The self-employed rule is separate from the $22,000 rule."}],
+ take:"The $22,000 number is not the only rule. If you earn from your own work, check the net profit rule, keep your receipts, and look at what IRAS says before the deadline."},
+
+/* ============ DOCS ============ */
+{id:"singpass",track:"docs",title:"$50 for ten minutes of your Singpass",min:6,risk:"high",tool:null,list:"scam",src:["spfsp","act","shh"],
+ who:"Composite story. Rahul, 19, poly student, and a CCA senior he likes.",
+ real:"Police, 26 Aug 2026: some people who handed over Singpass credentials for money are being investigated. Disclosing credentials to help an offence can mean up to 3 years' jail.",
+ sit:"Rahul's CCA senior Marcus has always been friendly. On a Sunday night he sends Rahul a DM.",
+ assume:"The numbers and names are invented. The pattern is the one police describe.",
+ obj:"Decide what to do when a friendly, plausible person asks for your Singpass, and what to do if it already happened.",
+ dp:"Why is it harder to say no to someone you like than to a stranger?",
+ steps:[
+  {thread:[["Marcus","bro u free? small favour"],["Marcus","my Singpass locked cos I changed phone. need someone to key in + approve one thing for work wallet"],["Marcus","10 mins, I pay u $50 lol"],["me","what is the thing"],["Marcus","just activating an account. u key in ur own password, I just hold the phone, I don't see anything"]],
+   q:"It's Marcus. He's never been shady. What do you do?",o:[
+   P("Say no, and tell him his own Singpass has its own way to recover.",2,"Marcus sends “lol okay okay” and nothing else. You lose nothing, and you didn't have to decide whether he was lying.","It does not matter whether Marcus is honest. Anything done with your Singpass is done as you, and you would not see what was created.","Can't do that one bro, it's my Singpass. Try Singpass's own recovery, they have steps on the website."),
+   P("Ask which company and what account first.",1,"He says “E-wallet for my part-time job.” It sounds plausible and you can't check it. You've spent twenty minutes being persuaded.","Asking questions is natural, but a good story is not proof. Police advice is simply not to disclose your credentials to people you cannot verify.",""),
+   P("Do it. You key in your own password, he just holds the phone.",0,"It takes six minutes. You get $50. You do not find out what was activated under your identity.","Typing it yourself does not change what you are approving. The police release says some people who gave credentials for money are being investigated themselves.","")]},
+  {thread:[["sys","Two weeks later"],["Nadia","Rahul I need to tell you something"],["Nadia","Marcus asked me and 2 other juniors the same thing. I did it. $50."],["Nadia","now Zoey says her bank called her about a LiquidPay account. what do I do"]],
+   q:"Nadia did it. What do you tell her?",o:[
+   P("Stop contact with Marcus, keep every message, tell a parent, and report to the police hotline (1800-255-0000). Call 1799 if unsure what to do next.",2,"Nadia feels sick but has a list. She is in a better place than someone who waits and hopes.","Police advice: report to the Police Hotline 1800-255-0000 or i-witness, and call ScamShield 1799 if unsure. Keep the evidence. A parent or trusted adult makes it easier to follow through.","Nadia, don't delete the chat. Screenshot it. Let's call 1800-255-0000 and tell your mum tonight."),
+   P("Change her Singpass password and say nothing.",1,"Changing the password closes one door. It doesn't undo what was already made in her name, and it doesn't tell anyone she was the one who got used.","Good instinct, incomplete. It does not replace reporting.",""),
+   P("Delete the chat and block Marcus.",0,"The chat was the proof that she was asked and paid, not the one organising it. Now she has nothing to show.","Deleting evidence helps the person who asked, not you.","")]},
+  {thread:[["Marcus","bro don't say anything ok"],["Marcus","if police ask just say u never give. I send u $200 more"],["Marcus","we all just trying earn lah"]],
+   q:"Marcus now wants you to lie. What do you do?",o:[
+   P("Don't agree. Screenshot, stop replying, and report it.",2,"You say nothing back. You have the screenshots and you report them. It is uncomfortable. It is also the end of it.","He is asking you to take part in a cover-up. Reporting is the way to stay out of it.","Report what you were asked and what you saw. You do not have to decide whether he meant harm."),
+   P("Ignore him and block him.",1,"You are out of it, but the offer to pay you to lie is something police would want to see.","Blocking ends the contact. It doesn't preserve the offer. Screenshot first.",""),
+   P("Agree. $200 is a lot.",0,"Now you are no longer just someone who was asked. You are someone who agreed to help hide it.","This turns a bad choice into a worse one.","")]}
+ ],
+ chk:[{q:"The police release cites s8A(1) of the Computer Misuse Act for disclosing Singpass credentials to help an offence. What is the maximum jail term?",o:["6 months","3 years","10 years"],a:1,w:"Up to 3 years, a fine up to $10,000, or both."},
+      {q:"Marcus says “you key it in yourself, I don't see anything.” Does that make it safe?",o:["Yes","No, it is still your identity being used","Only under $100"],a:1,w:"What gets created is created under your Singpass, and you can't see what it is."}],
+ take:"The friendliest person can still ask for the wrong thing. You don't have to judge whether they are lying. You just don't hand over your Singpass."},
+
+{id:"mule",track:"docs",title:"“Can I use your account for a bit?”",min:6,risk:"high",tool:null,list:"scam",src:["spfmule","shh"],
+ who:"Composite story. Aaliyah, 19, poly student.",
+ real:"Police, 2 Nov 2025: people were charged for giving up or selling bank accounts or Singpass credentials. One named offence carries up to 3 years' jail, a fine, or both.",
+ sit:"Aaliyah has a bank account, a PayNow number and a friend who has helped her at every project deadline. It is a Thursday night.",
+ assume:"Names and amounts are invented. The offences and penalties are from the police release.",
+ obj:"Say no without ending the friendship, and know what to do if a friend already did it.",
+ dp:"What is the difference between helping a friend and being used?",
+ steps:[
+  {thread:[["Zhi Hao","bro urgent. can I PayNow $2,800 to ur account"],["Zhi Hao","my bank got daily limit. u just transfer to this guy, he's my supplier"],["Zhi Hao","u keep $200 for ur trouble"],["Zhi Hao","its my own money. don't trust me ah?"]],
+   q:"Zhi Hao has always been there for you. What do you do?",o:[
+   P("Say no, and suggest he asks his bank to raise the limit or waits two days.",2,"He is annoyed for an hour, then sends “ok la”. You still have the friend and an unused account.","Police urge people not to let others use their bank accounts, including to receive and move money. Even if he is honest, your name is on the transfer.","I can't use my account for other people's money, even yours. Ask your bank to raise the limit. They can do it."),
+   P("Ask him to show proof the money is his.",1,"He sends a screenshot in thirty seconds. It proves nothing. You can't see where the money came from.","Proof you can't check is not proof. A different answer is the safe one.",""),
+   P("Do it. $200 for five minutes of work.",0,"The $2,800 comes in and you send it on. Later, the person who paid it in says it was a scam. Your account is the one in the records.","One named offence carries up to 3 years' jail, a fine, or both.","")]},
+  {thread:[["Zhi Hao","bro everyone does it"],["Zhi Hao","Ryan did it last week, got $300"],["Zhi Hao","if you're not gonna help I'll tell the CCA you're kiasu"],["Zhi Hao","just half then, $1,400"]],
+   q:"He is pushing. What do you do?",o:[
+   P("Hold the line, stop replying, and screenshot the messages.",2,"He sends two more messages and then goes quiet. The screenshots are saved in case the story turns out bigger than a limit on his bank account.","Pressure is the pattern. The offer escalates because the answer was no.","I've said no. Please stop asking."),
+   P("Compromise: do $1,400 only.",0,"Half the amount is not half the risk. Your account is still the one in the middle.","Reducing the amount doesn't change what the account is used for.",""),
+   P("Tell him you'll think about it.",1,"He keeps asking every day. “Think about it” reads as a yes with a delay.","A clear no ends the conversation faster than “maybe”.","")]},
+  {thread:[["sys","Next Monday"],["Ryan","hey. my bank just called me"],["Ryan","they froze my account. said money came in from a scam"],["Ryan","I only transferred it on lah. I'm freaking out"]],
+   q:"Ryan did what Zhi Hao asked. What does he do now?",o:[
+   P("Cooperate with the bank and police, keep the chats, tell a parent, and stop contact with Zhi Hao.",2,"Ryan is frightened but has a plan. The chats show he was asked and what he was promised.","Cooperating and keeping evidence is better than hiding. Police advice is to report.","Ryan, don't delete anything. Tell your mum tonight and call the bank back with her."),
+   P("Ask Zhi Hao what to say.",0,"Zhi Hao tells him to say he didn't know. Ryan is now in the middle of a story someone else wrote.","Do not coordinate your story with the person who used you.",""),
+   P("Delete the chats and block Zhi Hao.",0,"The proof of what happened is gone. Ryan looks like someone who hid it.","Deleting evidence helps the person who asked.","")]}
+ ],
+ chk:[{q:"Under s55A(5) as cited in the police release, what is the maximum jail term?",o:["6 months","3 years","10 years"],a:1,w:"Up to 3 years' jail, a fine, or both."},
+      {q:"A friend says it's his own money and his bank has a limit. Which reply protects you most?",o:["Take a photo of his ID","Say no and suggest he ask his bank to raise the limit","Do half"],a:1,w:"Your account is not the answer to his bank's limit."}],
+ take:"You can say no to a friend and keep the friend. Your account is yours, and it stays yours. The offer escalating is part of the pattern."},
+
+/* ============ SAFETY ============ */
+{id:"scams",track:"safety",title:"The job that paid me first",min:7,risk:"high",tool:null,list:"scam",src:["spfjob","act","shh"],
+ who:"Composite story. Sherry, 18, waiting for her results with nothing to do.",
+ real:"Police, 14 Sep 2026: at least 12 cases and at least $71,000 lost since 25 Aug. “Some victims may initially receive small payouts.”",
+ sit:"Sherry has two months before polytechnic starts. An ad on Instagram says remote task work, flexible, no experience.",
+ assume:"Names, amounts and chats are invented. The pattern is the one police describe.",
+ obj:"Know why an early payout is bait and not proof, and what to do when you are already in.",
+ dp:"When a job pays you on day one, what question should you still ask?",
+ steps:[
+  {thread:[["sys","WhatsApp, unknown number, 11:20 am"],["Chloe | Talent Team","Hi Sherry! We saw your profile 😊 Remote tasks, 15 min a day, $120 to $300 daily. No experience, no fees."],["Chloe | Talent Team","Interested? I can add you to our group to see how it works"]],
+   q:"You didn't apply anywhere. What do you do?",o:[
+   P("Don't reply. Check the number and message in the ScamShield app or on 1799.",2,"ScamShield matches the pattern of an unsolicited job offer. You block the number, which took about two minutes.","Police say victims are contacted through unsolicited messages or calls. Check with 1799 or the ScamShield app first.","Chloe, I didn't apply. Please stop."),
+   P("Ask for the company name and UEN first.",1,"Chloe sends a UEN and a polished PDF. Both can be copied from a real company. Twenty minutes later you feel more convinced, not more safe.","Looking legit is not the same as being legit. A UEN you can't connect to this person proves nothing.",""),
+   P("Try the free test tasks. It doesn't cost anything.",0,"It costs you your number, your name on PayNow, and your attention. You are now the next person on their list.","It is free until the step that isn't.","")]},
+  {thread:[["sys","Day 2"],["sys","PayNow: $18.00 received from LIM K H"],["Chloe | Talent Team","See? Payout received 🙂"],["Chloe | Talent Team","Level 2 tasks pay $60 per set. To unlock, a $100 activation deposit. Refunded with your first earnings!"],["Alicia88 (group)","just withdrew $320!! thanks Chloe"],["Marcus_T (group)","level 2 is so worth it"]],
+   q:"The $18 is in your account. Chloe asks for $100. What now?",o:[
+   P("Stop. Treat the $18 as bait, not proof, and leave the group.",2,"You don't pay. The group keeps posting screenshots you can't check, and you are not in it any more.","Police say some victims initially receive small payouts, then are asked to pay deposits or crypto to unlock tasks. The small payment is what builds trust.","The early payment is how it works. I'm out."),
+   P("Ask to withdraw the $18 and leave.",1,"You might keep the $18 and the lesson. You have also given your PayNow name and number to people who sell it on.","Not terrible, but you have still engaged.",""),
+   P("Pay the $100. It's refundable.",0,"You pay. The dashboard shows your “balance” rising. It does not show a withdrawal button.","Deposits to unlock tasks are a named feature of this scam.","")]},
+  {thread:[["Kiara","Sherry I did the $100 and then $300"],["Kiara","now the dashboard says negative balance -$240. must pay to clear before withdraw"],["Kiara","should I just pay? I already put so much in"]],
+   q:"Kiara has already paid $400. What do you tell her?",o:[
+   P("Stop paying. Screenshot everything. Call her bank now, then 1799, then report to the police.",2,"Kiara feels sick. She also has a list for the next hour, and she stops the next payment.","Police list “pay to clear a negative balance” as a named feature. Tell your bank immediately.","Don't pay more. Screenshot it all. Call your bank now, then 1799. I'll sit with you while you do it."),
+   P("Ask Chloe politely for a refund.",1,"Chloe says “sure, after you clear the negative balance.” This is the same trap with better manners.","Polite requests don't break the pattern. The refund isn't coming.",""),
+   P("Pay it. She's come this far.",0,"The next request is bigger. The sunk cost is how it keeps going.","The money already paid is gone. Paying more does not bring it back.","")]}
+ ],
+ chk:[{q:"Why do scammers send small payouts first?",o:["Because the company is legitimate","To make the job seem genuine before asking for larger deposits","It's a legal requirement"],a:1,w:"Police say some victims initially receive small payouts, then are asked for more money."},
+      {q:"Which request is a named red flag in the Sept 2026 advisory?",o:["A payslip","A deposit to unlock tasks","A written contract"],a:1,w:"Deposits to unlock tasks, clear negative balances or withdraw earnings are listed."}],
+ take:"A payout on day one is not proof. It's how the next step gets believed. If a job asks you to put money in, stop, then check with 1799."},
+
+{id:"tickets",track:"safety",title:"Sold out. Except on Carousell.",min:6,risk:"high",tool:null,list:"scam",src:["spftix","shh","sg"],
+ who:"Composite story. Jia Yi, 17, with $380 of birthday and part-time money.",
+ real:"Police, 6 Jun 2026: at least 14 cases and at least $11,000 lost since 1 Jun for one concert. Fake listings on X, Instagram and Carousell, paid by PayNow, followed by “admin fees”.",
+ sit:"A concert Jia Yi wants to see sold out in minutes. Her friend group chat has been panicking for a week.",
+ assume:"The seller and chats are invented. The organiser terms are the ones police quoted for one event. Other events have their own terms.",
+ obj:"Know why a real ticket from a stranger may still be useless, and what to do in the first hour if you paid.",
+ dp:"What would you ask a friend who said they got a ticket from a stranger?",
+ steps:[
+  {thread:[["sys","X, DM, 12:41 am"],["@lena.tix","Selling 2 x Cat 2, $380 each (face $298). Can't go anymore 😭"],["@lena.tix","PayNow only. Can't meet, I'm in JB. I'll transfer to ur Ticketmaster after"],["Group chat","DO IT before it's gone!!! she's legit, look at the reviews"]],
+   q:"It's late, the price is high, and your friends are saying it's real. What do you do?",o:[
+   P("Stop and read the organiser's terms before sending anything.",2,"For this event, Ticketmaster's terms say tickets cannot be transferred or resold, and resale tickets may be refused entry without a refund. So even an honest seller couldn't give you a ticket you can use.","Police quoted those terms in the June 2026 advisory. Buy only from authorised sellers.","I'm going to check the organiser's terms first. Thanks."),
+   P("Ask her to share a screenshot of her order.",1,"She sends one in a minute. It proves nothing. Screenshots can be faked or borrowed, and even a real ticket may be refused at the door.","A screenshot of a ticket is not a ticket you can use.",""),
+   P("Pay half to hold it.",0,"$380 goes out by PayNow and the next message asks for more.","PayNow transfers to strangers are hard to undo.","")]},
+  {thread:[["sys","You sent $380 by PayNow"],["@lena.tix","received! 🙏"],["@lena.tix","one last thing. Ticketmaster needs a $60 admin fee to process the transfer"],["@lena.tix","pay in 10 mins or the tickets get released"]],
+   q:"You've paid already, and now there is a “fee”. What now?",o:[
+   P("Don't pay. Stop replying, screenshot everything, and call your bank right away.",2,"The $380 is likely gone. But the bank can act faster than you think if you call now, and you stop the $60 and whatever comes after it.","Police list “administrative fees” after the first payment as part of this scam. Tell your bank immediately.","Don't pay the fee. Screenshot the chat and the PayNow receipt. Bank first, then 1799."),
+   P("Ask Ticketmaster's official support whether the transfer exists.",1,"Good instinct. Official support will tell you that tickets cannot be transferred. You lose a day, but you stop paying.","Checking with the organiser is right, but call your bank first because time matters.",""),
+   P("Pay the $60. You've already paid $380.",0,"The next message asks for another fee. The sunk cost is how it keeps going.","The fee is part of the pattern.","")]},
+  {thread:[["Mum","Jia Yi, what is the $380 PayNow on your statement?"],["Mum","Why you never tell me"]],
+   q:"Mum has seen it. What do you say?",o:[
+   P("Tell her straight, then do the bank, 1799 and police report together.",2,"Mum is upset for ten minutes. Then she helps with the bank call. You stop carrying it alone.","Telling someone you trust makes it much easier to follow through on the bank, 1799 and the report.","Mum, I got scammed buying a concert ticket. I'm sorry. Can you help me call the bank?"),
+   P("Say you lost money on a ticket, without details.",1,"Mum asks for details anyway. You get through it, but you've lost ten minutes of the hour that counts.","Vague gets you partial help. Details are what the bank needs.",""),
+   P("Hide it and try to get the money back yourself.",0,"You message the seller, who has already blocked you. Nothing happens for a day.","Time matters when you report to a bank or police.","")]}
+ ],
+ chk:[{q:"Which platforms did police name for the fake concert ticket listings?",o:["X, Instagram and Carousell","Only Carousell","Only email"],a:0,w:"The 6 Jun 2026 advisory names X, Instagram and Carousell."},
+      {q:"After you pay, the “seller” asks for an administrative fee. What does that tell you?",o:["It's normal","It's a named part of the scam pattern","It means the ticket is real"],a:1,w:"Police list extra “administrative fees” after the first payment."}],
+ take:"A real ticket from a stranger may not even work. Check the organiser's terms first, and if you paid, call your bank in the first hour."},
+
+{id:"emergency",track:"safety",title:"Is this a 995?",min:7,risk:"high",tool:null,list:"contacts",src:["mha","spf","mind"],
+ who:"Composite story. Four moments, one night.",
+ real:"MHA: 995 is for life-threatening emergencies. NurseFirst (6262 6262) gives advice for non-emergencies. The 1777 hotline ends on 1 Jan 2027.",
+ sit:"Four situations, none of them easy to name. Nobody tells you how sure you have to be before you call.",
+ assume:"This site never dispatches help. In a real emergency, call. This lesson is practice.",
+ obj:"Pick the right number when you are not sure, and know what to say.",
+ dp:"What stops people calling 995 when they are not sure, and what would help?",
+ steps:[
+  {thread:[["sys","2:10 am, after a party, void deck"],["Dev","...mmm"],["Wen","he's just drunk lah, let him sleep it off"],["Priya","if ambulance come his parents will know. he'll get killed"],["me","he's not waking up when I shake him"],["me","he's breathing very slow"]],
+   q:"Dev can't be woken properly. Nobody wants the ambulance. What do you do?",o:[
+   P("Call 995. Say where you are and what you see, and ask what to do while help comes.",2,"The operator asks where you are and whether he's breathing, and tells you what to do while the ambulance comes. His parents will be upset. He will be alive.","995 is for life-threatening emergencies, and if it isn't, you are referred on. A wrong call costs a conversation. A missed one can cost far more.","My friend won't wake up. He's had a lot to drink. We're at Block 27 void deck. He's breathing very slowly."),
+   P("Call NurseFirst for advice first.",1,"NurseFirst is for non-emergencies. While you wait on the line he may get worse. They will tell you to call 995 if it is an emergency.","NurseFirst gives advice for non-emergencies. If you cannot wake someone, 995 is the number.",""),
+   P("Put him in a taxi home.",0,"Nobody is with him in the taxi and nobody is watching his breathing.","Sending someone who cannot be woken home alone is not safe.","")]},
+  {thread:[["sys","Later that week, 1:15 am, home alone"],["sys","Someone is trying the door handle. You can hear them whispering."],["me","(whispering) mum no answer"]],
+   q:"Speaking out loud would give you away. What is the right route?",o:[
+   P("SMS 70999 with your address and what is happening.",2,"Police text you back. Nobody heard you. SMS 70999 is exactly for this.","Police emergency SMS is 70999, for emergencies where talking is unsafe, and for people who are deaf, mute or have a speech impairment.","(SMS to 70999) Intruder at door of #05-12 Block 27 ... trying door. Home alone, can't talk."),
+   P("Call 999 and whisper.",1,"That can work if you can do it safely. SMS means no one hears you.","Calling 999 is fine when you can do it safely. SMS is for when you can't talk.",""),
+   P("Post in the family group chat and wait.",0,"Nobody is awake. Nobody is coming.","A group chat is not an emergency service.","")]},
+  {thread:[["sys","Saturday, 11:20 pm"],["Mum","my ankle is so swollen. can't put weight on it"],["Mum","not bleeding, not broken I think. A&E long queue"]],
+   q:"It hurts but it isn't life-threatening. Which number?",o:[
+   P("NurseFirst, 6262 6262, for advice on what level of care she needs.",2,"The nurse asks questions and tells her whether to go to A&E or see a GP tomorrow.","NurseFirst gives advice for non-emergencies.","Hi, my mum's ankle is badly swollen and she can't put weight on it. She isn't bleeding. Where should she go?"),
+   P("Take a taxi to A&E and wait.",1,"Reasonable. You may wait hours for something that could have waited. NurseFirst would have told you.","Not wrong, but NurseFirst can tell you whether it is needed.",""),
+   P("Call 995.",0,"The operator assesses and may refer you to NurseFirst. You used a line meant for life-threatening emergencies.","995 is for life-threatening emergencies.","")]},
+  {thread:[["sys","1:02 am, a text from Zhi Qi"],["Zhi Qi","I don't think I can do this anymore"],["Zhi Qi","sorry for dumping this on u. just wanted someone to know"]],
+   q:"Zhi Qi has sent this to you. What do you do?",o:[
+   P("Reply now, and call if you can. Stay with her. If you think she is in immediate danger, call 995 or 999 and tell an adult near her. Offer to call mindline 1771 together.",2,"You reply in under a minute. She answers. You don't have to fix it. You stay, and you make the next step small.","National mindline is 1771, or WhatsApp 6669-1771. If someone is in immediate danger, call 995 or 999.","I'm glad you told me. I'm here. Can I call you right now? If you don't want to talk, we can call 1771 together."),
+   P("Send the 1771 number and say she should call.",1,"It's the right number. Sent alone it can feel like being passed along. Staying in the conversation matters more.","1771 is right. Stay with her while she calls if she'll let you.",""),
+   P("She's venting. Text tomorrow.",0,"Tomorrow may be too late to matter. At the least, she feels alone tonight.","Take it seriously and respond.","")]}
+ ],
+ chk:[{q:"What is 995 for?",o:["Any hospital question","Life-threatening emergencies","Booking a taxi"],a:1,w:"995 is for life-threatening emergencies. NurseFirst gives advice for non-emergencies."},
+      {q:"When is SMS 70999 the right choice?",o:["When talking would be unsafe, or you are deaf, mute or have a speech impairment","When the line is busy","For anything non-urgent"],a:0,w:"Police emergency SMS is for when talking is unsafe, and for people who are deaf, mute or have a speech impairment."}],
+ take:"When you are not sure, 995 will assess. The real cost is a missed call, not a wrong one. And when a friend says something heavy, staying in the conversation matters more than the perfect words."},
+
+/* ============ WORK ============ */
+{id:"contract",track:"work",title:"“Paperwork later”",min:6,risk:"medium",tool:"kets",list:"job",src:["kets","kets14","ketspt"],
+ who:"Composite story. Kavya, 18, her first job at a café.",
+ real:"MOM: written key employment terms (KETs) are due within 14 days of the first day of work.",
+ sit:"Kavya got a café job through a friend. Her manager is nice, busy and says the paperwork can wait.",
+ assume:"Eligibility depends on whether the job is covered by the Employment Act and its type. Check MOM.",
+ obj:"Ask for the basics politely, and know the 14-day rule.",
+ dp:"What can you ask for without sounding like you don't trust your boss?",
+ steps:[
+  {thread:[["Mr Tan","Hi Kavya! Can start Saturday 8am. Wear black."],["Mr Tan","Paperwork later ya, we very busy now. Just come first"]],
+   q:"You want the job. What do you say?",o:[
+   P("Say yes, and ask for pay, hours and notice period in writing before Saturday. A WhatsApp message is fine.",2,"He replies with a short list: rate, hours, notice. It took him two minutes and you have a screenshot.","Written key employment terms are due within 14 days of the first day of work. Asking early makes the short version easy.","Thanks! Could you send the pay rate, hours and notice period in writing before Saturday? WhatsApp is fine."),
+   P("Say “ok!” and ask later.",1,"Day 12 arrives and it's still “later”. Asking is now harder and you've been working without a number.","Asking later is not wrong, but you lose leverage.",""),
+   P("Say you won't start without a signed contract.",1,"It may cost you the job. The same result came from a polite ask.","The 14-day rule says terms in writing, not that you can't start.","")]},
+  {thread:[["sys","Day 3, back of the shop"],["Mr Tan","Eh Kavya, sign this. Standard one."],["sys","The page has blanks for hourly rate and hours."]],
+   q:"The form has blank spaces where the rate and hours should be. What do you do?",o:[
+   P("Take a photo and ask for a filled copy before signing.",2,"He fills it in or says he'll do it. You have a photo of what you were given.","Never sign a page with the key numbers blank.","Can I take this home and sign once the rate and hours are filled in? I'll send it back tomorrow."),
+   P("Refuse to sign at all.",1,"He may think you don't trust him. You can ask politely without refusing.","Refusing is an option, but asking for a filled copy is usually enough.",""),
+   P("Sign. It's standard.",0,"The rate and hours get filled in later, by someone else.","A signature on a half-empty page is a signature on whatever fills it.","")]},
+  {thread:[["sys","Day 15"],["me","oh. I never got KETs"],["me","they said 14 days right"]],
+   q:"It is day 15 and nothing arrived. What now?",o:[
+   P("Message the manager asking for written terms, keep a dated screenshot, and if nothing comes check MOM.",2,"He sends them on day 17 with an apology. You have the record and an easy conversation.","Written KETs are due within 14 days of the first day. MOM's pages explain what to do if they don't arrive.","Hi Mr Tan, I haven't received my written terms. Could you send them this week? Thank you!"),
+   P("Quit.",0,"You walk away from a job over a missing piece of paper that one message could have fixed.","Written terms are due within 14 days of the first day. Day 15 is a reason to ask, not to leave.",""),
+   P("Wait. Maybe they'll remember.",0,"Another month goes by and you still have no written rate, hours or notice period.","The deadline is the employer's job, but nobody else will track it for you. A one-line message with the date does.","")]}
+ ],
+ chk:[{q:"How soon after the first day must written KETs be issued?",o:["7 days","14 days","30 days"],a:1,w:"MOM: within 14 days of the employee's first day of work."},
+      {q:"Do part-time employees get KETs?",o:["No, only full-time","Yes, if covered by the Employment Act and on a contract of 2 weeks or longer","Only if over 35 hours"],a:1,w:"MOM's FAQ says part-timers are included with no minimum hours."}],
+ take:"Ask for pay, hours and notice in writing early. A WhatsApp message counts as a start. Never sign a page with blanks."},
+
+{id:"payrights",track:"work",title:"The pay that did not come",min:6,risk:"medium",tool:"slip",list:"job",src:["momsep","slip","momdisp"],
+ who:"Composite story. Hui Min, 20, works events through a small agency.",
+ real:"MOM: whether you are an employee or self-employed “depends on the actual relationship between you and the company”. The Employment Act doesn't cover self-employed people.",
+ sit:"Hui Min was told she is a “freelancer”. She works fixed shifts the agency sets, wears their uniform, and was told pay would come on the 7th. It is the 20th.",
+ assume:"Whether she is an employee or self-employed changes where she goes. MOM's self-assessment tool and pages decide.",
+ obj:"Work out your status before chasing, write a message that gets a reply, and know the next step.",
+ dp:"Why would an employer call someone a “freelancer”? What would you check?",
+ steps:[
+  {thread:[["me","hi Jason, pay for last month hasn't come"],["Jason","next week ya, finance slow"],["Jason","you're freelancer so process different"]],
+   q:"Before chasing again, what is the most useful thing to work out?",o:[
+   P("Whether she is really an employee or self-employed, because that decides where she goes next.",2,"She reads the MOM page and notes that the answer “depends on the actual relationship”. She writes down what she does each week.","MOM says employee or self-employed depends on the actual relationship. Employees get benefits such as CPF and leave. The Employment Act does not apply to self-employed people.","Check MOM's self-assessment tool before you decide who to contact."),
+   P("Just keep chasing politely.",1,"Polite is good. It doesn't tell you where to go if it doesn't work.","Persistence helps, but you also need to know your route.",""),
+   P("Quit and post about it.",0,"The money still isn't paid. Now it's public and personal.","Keep it factual first.","")]},
+  {thread:[["me","(drafting)"]],
+   q:"Which message is most likely to get an answer?",o:[
+   P("“Hi Jason, I'm owed $480 for 6 shifts in October (list attached). Could you confirm a payment date by Friday? Thank you.”",2,"Jason replies that afternoon with a date. The message had an amount, a list, and a deadline.","A specific message with an amount, dates and a requested reply date is easy to answer and easy to keep.","Hi Jason, I'm owed $480 for 6 shifts in October. Could you confirm a payment date by Friday?"),
+   P("“Any update on my pay?”",1,"He says “next week” again.","Vague questions get vague answers.",""),
+   P("A long angry message in capitals.",0,"He stops replying. You feel better for ten minutes.","Anger is understandable. It is hard to act on.","")]},
+  {thread:[["sys","Ten days later"],["Jason","ok I'll sort it"],["sys","Nothing arrives."]],
+   q:"Still unpaid. What is the next step?",o:[
+   P("Collect your messages and shift list, and read MOM's page on employment disputes to find the right route for your status.",2,"She has a timeline and the right starting point. If she is self-employed, MOM's page and NTUC's freelancer mediation are where to look. If she is an employee, MOM's route applies.","Your route depends on status. This lesson doesn't decide it for you. MOM's page is the starting point.","I'm keeping a timeline: dates, amounts, what he said. I'll read the MOM page on disputes tonight."),
+   P("Wait one more month.",1,"Sometimes the money turns up. More often the excuse changes, and each week makes the shift list harder to rebuild from memory.","Time blurs records. Keep the timeline fresh while you wait.",""),
+   P("Post about the agency online.",0,"It doesn't get you paid and might make it harder.","Evidence and the right route beat a post.","")]}
+ ],
+ chk:[{q:"When must an itemised payslip be given?",o:["Within 3 working days of payment, or with payment","At the end of the year","Only if you ask"],a:0,w:"MOM: with payment or within 3 working days."},
+      {q:"If someone is genuinely self-employed, does the Employment Act cover them?",o:["Yes","No","Only for part-time"],a:1,w:"MOM says the Employment Act does not apply to self-employed people."}],
+ take:"Work out your status first, because it decides where you go. Send a message with an amount and a date. Keep a timeline."},
+
+/* ============ HOUSING ============ */
+{id:"budget",track:"housing",title:"The $900 room",min:7,risk:"medium",tool:"budget",list:"moving",src:["ms"],gen:true,
+ who:"Composite story. Daniel, 20, working full-time, take-home about $2,000.",
+ real:"",
+ sit:"Daniel's cousin found him a room for $900. His cousin says he earns $2,000 so it will be “plenty”. Daniel's mum says he can always come back.",
+ assume:"Numbers are examples. This lesson does not tell you whether to move.",
+ obj:"Build a full monthly list, find what “plenty” ignores, and make a plan B.",
+ dp:"What is the cost nobody mentions when someone says “you can afford it”?",
+ steps:[
+  {thread:[["Cousin","$900 only lah. You earn 2k, plenty"],["Cousin","just don't eat out every day"]],
+   q:"“Plenty” is a feeling. What turns it into a number?",o:[
+   P("List every monthly cost you would have there, including those you don't pay now.",2,"Daniel finds the list is longer than he thought: utilities, transport, food, phone, laundry, and a small buffer.","A full list shows what rent leaves. Use the tool below with your own numbers.",""),
+   P("Use a rule of thumb like 30% for rent.",1,"It's a start. It doesn't know your commute, or whether utilities are included.","Rules of thumb are a starting point, not a plan.",""),
+   P("Trust your cousin.",0,"Your cousin's life is not your budget.","Use your own numbers.","")]},
+  {thread:[["Landlady","Rent $900. Aircon $40/mth extra. Utilities split by head. Wifi $15 each"],["Landlady","Cleaning fee for common area $20/mth"]],
+   q:"The landlady has listed more. What do you do?",o:[
+   P("Ask for the full list of monthly costs in writing and add them all.",2,"$900 + $40 + $15 + $20 = $975 before utilities, and utilities are “split by head”. You know your real number.","Ask for the complete list of monthly costs in writing before you commit.","Could you send everything I'd pay each month in one message, including utilities?"),
+   P("Assume it's similar to other places.",1,"Maybe. You won't know until you see a bill.","Assumptions are cheap until the bill.",""),
+   P("Don't ask. It feels awkward.",0,"The first bill is a surprise.","Asking before you sign is normal.","")]},
+  {thread:[["Mum","You can always come back. Nobody will say anything."]],
+   q:"Mum has offered a way back. How do you use it?",o:[
+   P("Treat it as plan B. Set a date to check how the money is going.",2,"You decide: look at the numbers after the first two months. If it isn't working, you know your options before it feels like failing.","Plan B in advance is part of a real budget.","Mum, thanks. I'll check in after two months and we'll see."),
+   P("Pretend you won't need it.",1,"You carry it alone.","You don't have to.",""),
+   P("Move out and hide it if it goes badly.",0,"It gets worse before anyone knows.","Early honesty is cheaper.","")]}
+ ],
+ chk:[{q:"Rent $900, utilities $120, transport $110, food $320, phone $40. What is the monthly total?",o:["$1,490","$1,390","$1,590"],a:0,w:"$900 + $120 + $110 + $320 + $40 = $1,490."},
+      {q:"With take-home $2,000, how much is left after that $1,490?",o:["$510","$610","$410"],a:0,w:"$2,000 - $1,490 = $510."}],
+ take:"Make a full list, ask for every cost in writing, and plan B before you need it."},
+
+{id:"rental",track:"housing",title:"The five-month room",min:7,risk:"medium",tool:null,list:"moving",src:["cea","shh"],gen:true,
+ who:"Composite story. Priya, 21, on exchange for one semester.",
+ real:"CEA: HDB bedroom rentals have a minimum rental period of 6 months, and tourists cannot rent.",
+ sit:"Priya is in Singapore for five months. A listing says $620 a room near campus, available now. The landlord is overseas and an agent will hand over keys after a deposit.",
+ assume:"The listing is invented. The rules are from CEA's page. Other property types have their own rules.",
+ obj:"Check the rules before the deposit, not after.",
+ dp:"What's one thing you'd verify before sending any money for a room?",
+ steps:[
+  {thread:[["Listing","$620 room near campus. Short stay OK. Available now. Landlord overseas, agent hands over keys after deposit"],["Agent","5 months ok no problem!! 3 other people interested"]],
+   q:"The agent says five months is fine. What do you check first?",o:[
+   P("What type of property it is, because HDB bedroom rentals have a 6-month minimum.",2,"The agent goes vague. “It's fine, don't worry about that.” You have learned something without paying anything.","CEA says the minimum rental period for an HDB flat or bedroom is 6 months. Five months doesn't fit.","What kind of property is this? HDB or private? I'm here for 5 months."),
+   P("Ask to see the room before anything.",1,"Good, but the agent says the landlord's away and the keys come after the deposit. You've learned the order is the red flag.","A viewing is a good step. Pair it with the rule check.",""),
+   P("Pay a holding deposit to secure it.",0,"$620 goes out. The agent says “we'll sort the rest tomorrow”, and tomorrow the chat goes quiet.","Nothing in the chat proves the room, the agent or the landlord exist, and a PayNow transfer to a stranger is hard to reverse.","")]},
+  {thread:[["Agent","pay $620 deposit by PayNow now ya"],["Agent","3 others interested. first come first served"]],
+   q:"The pressure is on. What do you do?",o:[
+   P("Say you'll pay when you've seen the room and a tenancy agreement with the owner's name on it.",2,"The agent says “then I give to someone else”. You lost nothing.","Pressure to pay before a viewing or agreement is a red flag.","I'll pay once I've seen the room and the agreement. If that's not possible, no worries."),
+   P("Ask for a photo of the landlord's ID.",1,"It can be faked.","A photo of an ID is not proof.",""),
+   P("Pay. You're afraid to miss out.",0,"The money goes. Nothing in the chat proves the room exists.","“3 others interested” costs the agent nothing to say.","")]},
+  {thread:[["Landlord (a real one)","Here's the agreement. 2 pages. Standard."]],
+   q:"You have found a legitimate room for 6 months. The agreement arrives. What do you do?",o:[
+   P("Read it against CEA's tenant checklist, ask about the points you can negotiate, and get changes in writing.",2,"You find two terms you want to change. The landlord agrees to one. Both are in writing.","CEA says terms can be negotiated and provides a tenant checklist and template.","Could we change clause 4? Here's what I'd like instead."),
+   P("Skim and sign. It's standard.",1,"It might be fine. You won't know until something goes wrong.","“Standard” is not a reading.",""),
+   P("Sign tonight so you don't lose the room.",0,"A week later the landlord points to a clause you never saw.","Nobody else will read it for you. “Standard” is what people say about contracts nobody read.","")]}
+ ],
+ chk:[{q:"What is the minimum rental period for an HDB bedroom, per CEA?",o:["3 months","6 months","12 months"],a:1,w:"CEA says 6 months."},
+      {q:"Can tourists rent an HDB flat or bedroom?",o:["Yes","No","Only for 3 months"],a:1,w:"CEA says tourists cannot."}],
+ take:"Check the rules before you pay. A real room can show you the agreement first."}
+];
+
+var SC={};SCEN.forEach(function(s){SC[s.id]=s});
+
+/* ---------- tools data ---------- */
+var KETS=['Employer\'s full name','Employee\'s full name','Job title, main duties and responsibilities','Start date','Contract duration (if fixed-term)','Working arrangements: daily hours, working days per week, rest day','Salary period','Basic salary (and basic rate for hourly, daily or piece-rated work)','Fixed allowances','Fixed deductions','Overtime payment period (if different from salary period)','Overtime rate of pay','Other salary components, such as bonuses and incentives','Types of leave (annual, sick, hospitalisation, maternity, childcare)','Other medical benefits (insurance, medical, dental)','Probation period','Notice period','Place of work (optional)'];
+var SLIP=['Employer\'s full name','Employee\'s full name','Date of payment','Basic salary (and rate and hours, days or pieces worked, if hourly, daily or piece-rated)','Start and end dates of the salary period','Allowances, fixed and ad-hoc','Other additional payments (bonuses, rest day pay, public holiday pay)','Deductions, fixed and ad-hoc','Overtime hours worked','Overtime pay','Overtime period dates (if different from salary period)','Total net salary paid'];
+var LISTS=[
+ {id:'job',n:'First Job',items:['Ask for written Key Employment Terms (due within 14 days of your first day)','Check the KETs against the 18-item list','Keep a copy of your contract and KETs','Check every payslip against your contract','Write down who to ask about pay (HR or supervisor)','Read MOM\'s Workright pages for your rights','Check on myTax Portal whether IRAS has any notice for you']},
+ {id:'budget',n:'First Month Budget',items:['List one-time costs (deposit, move-in items)','List monthly costs (rent, food, transport, bills, phone)','Add a buffer for surprises','Compare the total with your take-home pay','Check MoneySense for budgeting guidance']},
+ {id:'moving',n:'Moving Out',items:['Set a six-month-or-longer plan if renting an HDB flat or bedroom','View the place before you pay anything','Read the tenant checklist and tenancy template before signing','Negotiate the terms you disagree with','Save an emergency-contact plan (see Emergency Contacts)','Plan move-day: keys, bills, address updates']},
+ {id:'contacts',n:'Emergency Contacts',items:null,contacts:true},
+ {id:'work',n:'Study-to-Work Transition',items:['Update your CV with your real experience','Ask about KETs before you start','Know your pay date and how you will be paid','Find your CPF contribution on your first payslip','Set up myTax Portal access with Singpass','Know who to ask if something seems wrong']},
+ {id:'scam',n:'Scam Response',items:['Stop. Do not click, reply or transfer money','Check using the organisation\'s official hotline','Call 1799 (24/7) if unsure','If you paid or shared bank details: call your bank and ask about the kill-switch','File a police report on the police e-services portal','Tell a family member or friend']}
+];
+var LIST={};LISTS.forEach(function(l){LIST[l.id]=l});
+var CONTACT_PROMPTS=['First call (a name or initial is enough)','Second call','A trusted adult near where I live','A family member overseas (if relevant)','School or workplace contact'];
+
+var SITS=[
+ {id:'job',t:'I got my first job',les:['contract','payslip','payrights'],svc:['mom','workright','cpf']},
+ {id:'uni',t:'I am moving for study or work',les:['budget','rental'],svc:['hdb','cea','sgw'],list:'moving'},
+ {id:'lost',t:'I lost a document',les:[],svc:['ica','singpass','sgw'],note:'General orientation: start with the agency that issued the document. Search its official site (look for .gov.sg) and do not hand details to anyone who contacts you first.'},
+ {id:'msg',t:'I got a suspicious message',les:['scams','tickets','singpass','mule'],svc:['shield','eport'],route:'help-scam'},
+ {id:'tax',t:'Do I need to file tax?',les:['tax'],svc:['iras']},
+ {id:'money',t:'I need help paying for something',les:[],svc:['sgw','ms'],note:'SupportGoWhere helps you find support schemes by situation. It does not decide eligibility.'},
+ {id:'unsafe',t:'I feel unsafe or it is an emergency',les:['emergency'],svc:[],route:'help-emergency'},
+ {id:'low',t:'I feel overwhelmed',les:[],svc:['mind','sgw'],route:'help-support'}
+];
+
+var MISSIONS=[
+ ['Read the fictional payslip and name each line.','s-payslip'],
+ ['Find the .gov.sg website for the agency that handles your next task.','help-find'],
+ ['Add two names to your Emergency Contacts checklist.','list-contacts'],
+ ['Play "The job that paid me first" and say out loud why the $18 was bait.','s-scams'],
+ ['Compare a (real or made-up) job offer with the KETs list.','s-contract'],
+ ['Fill the move-out budget with your own numbers. They stay on this device.','s-budget'],
+ ['Explain to someone what ACT stands for.','s-singpass'],
+ ['Do the tax scenario and note the 18 April deadline.','s-tax']
+];
+
+var CHANGELOG=[
+ ['10 Nov 2026','Rewrote every scenario: eleven situations built from real Singapore Police advisories (Aug to Sep 2026) and MOM, CEA and IRAS pages. Answers now have a strongest move, a workable-with-a-catch move and a costly move, with real chat dialogue and lines you can actually say. Added money mule and concert ticket scenarios. Corrected an earlier draft figure after re-checking the police pages.'],
+ ['7 Nov 2026','v0.1 pilot build published: nine scenarios across five tracks, Quick Help, source cards, checklists and educator packs.'],
+ ['7 Nov 2026','Checked emergency and support numbers against official pages before publishing. Found three changes this build reflects: the IMH Mental Health Helpline (6389 2222) was retired on 18 Jun 2025 and replaced by National mindline 1771; the police emergency SMS number is now 70999 (from 1 Oct 2024); and the 1777 non-emergency ambulance hotline ends on 1 Jan 2027.'],
+ ['7 Nov 2026','CPF rates in the lessons use the CPF Board page for employees aged 55 and below with wages above $750. Wage ceilings were not confirmed and are not stated.']
+];
+
+/* ---------- helpers ---------- */
+function stat(tid){
+ var t=TR[tid];if(S.support[tid])return {k:'support',l:'Needs support'};
+ var done=t.sc.filter(function(i){return S.progress[i]});
+ if(done.length===t.sc.length){var avg=done.reduce(function(a,i){return a+S.progress[i].s/S.progress[i].m},0)/done.length;if(avg>=.7)return {k:'ready',l:'Ready to verify'}}
+ if(done.length)return {k:'prac',l:'Practised'};
+ if(S.explored[tid])return {k:'expl',l:'Explored'};
+ return {k:'none',l:'Not started'};
+}
+function badgeFor(k){return {none:'',expl:'sun',prac:'info',ready:'ok',support:'alert'}[k]}
+function riskBadge(r){return '<span class="badge '+(r==='high'?'alert':r==='medium'?'sun':'ok')+'">'+r+' risk</span>'}
+function srcCard(id){
+ var s=SRC[id];
+ return '<article class="src"><div class="row"><span class="badge ok">Source</span><strong>'+esc(s.org)+'</strong>'+(s.dir?'<span class="badge">directory link</span>':'')+'</div>'+
+ '<a class="t" href="'+esc(s.u)+'" target="_blank" rel="noopener noreferrer">'+esc(s.t)+'</a>'+
+ '<dl><dt>Jurisdiction</dt><dd>Singapore</dd><dt>Last reviewed</dt><dd>'+REVIEWED+'</dd><dt>Reviewer</dt><dd>'+esc(REVIEWER)+'</dd><dt>Covers</dt><dd>'+esc(s.cov)+'</dd><dt>Does not cover</dt><dd>'+esc(s.not)+'</dd></dl>'+
+ '<p class="small"><strong>Confirm before acting.</strong> Rules, numbers and websites can change. <a href="#corrections">Report a correction</a></p></article>';
+}
+function svcCard(k){var s=SVC[k];return '<a class="link-card" href="'+esc(s[1])+'" target="_blank" rel="noopener noreferrer"><h3>'+esc(s[0])+'</h3><p class="small muted">'+esc(s[2])+'</p><span class="small" style="overflow-wrap:anywhere">'+esc(s[1].replace(/^https?:\/\//,''))+'</span></a>'}
+function weekIdx(){var d=new Date();var start=new Date(d.getFullYear(),0,1);return Math.floor((d-start)/604800000)}
+function weekKey(){return new Date().getFullYear()+'-w'+weekIdx()}
+function nextScenario(){var order=['payslip','scams','contract','budget','singpass','tax','payrights','tickets','mule','emergency','rental'];for(var i=0;i<order.length;i++){if(!S.progress[order[i]])return SC[order[i]]}return null}
+function pct(a,b){return b?Math.round(a/b*100):0}
+
+/* ---------- views ---------- */
+function mapSvg(){
+ var pts=[[70,120],[190,50],[320,120],[450,50],[570,120]];
+ var path='M70 120 C 120 120, 130 50, 190 50 S 270 120, 320 120 S 400 50, 450 50 S 520 120, 570 120';
+ var h='<svg viewBox="0 0 640 190" role="group" aria-label="Readiness map: five checkpoints, one for each track"><path d="'+path+'" fill="none" stroke="var(--line)" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 10"/>';
+ TRACKS.forEach(function(t,i){
+  var st=stat(t.id),x=pts[i][0],y=pts[i][1];
+  var fill={none:'var(--surface)',expl:'var(--sun)',prac:'var(--info)',ready:'var(--ok)',support:'var(--accent)'}[st.k];
+  var stroke='var(--fg)';
+  var glyph={none:'',expl:'?',prac:'•',ready:'✓',support:'!'}[st.k];
+  var tc=(st.k==='prac'||st.k==='ready')?'var(--surface)':'var(--on-accent)';
+  h+='<a href="#t-'+t.id+'"><circle cx="'+x+'" cy="'+y+'" r="22" fill="'+fill+'" stroke="'+stroke+'" stroke-width="2.5"/>'+
+   '<text x="'+x+'" y="'+(y+6)+'" text-anchor="middle" font-size="18" font-weight="800" fill="'+tc+'" font-family="sans-serif">'+glyph+'</text>'+
+   '<text class="node-label" x="'+x+'" y="'+(y<80?y-32:y+42)+'" text-anchor="middle">'+esc(t.name.split(' &')[0])+'</text>'+
+   '<text class="node-state" x="'+x+'" y="'+(y<80?y-18:y+57)+'" text-anchor="middle">'+esc(st.l)+'</text></a>';
+ });
+ return h+'</svg>';
+}
+function mapBlock(){return '<div class="map-wrap">'+mapSvg()+'</div><p class="small muted" style="margin-top:8px">Not a score. Each checkpoint shows where you are: explored, practised, ready to verify, or needs support. Ready to verify means you are set to check the official source.</p>'}
+
+function situationFinder(open){
+ var h='<div class="chips" role="group" aria-label="Choose a situation">';
+ SITS.forEach(function(s){h+='<button class="chip" type="button" data-act="sit" data-id="'+s.id+'" aria-pressed="'+(finder===s.id)+'">'+esc(s.t)+'</button>'});
+ h+='</div><div id="sit-out" aria-live="polite" class="stack" style="margin-top:14px">'+sitOut()+'</div>';
+ return h;
+}
+var finder=null;
+function sitOut(){
+ if(!finder)return '<p class="muted">Pick the one that sounds closest. You will get a short route, not a pile of links.</p>';
+ var s=SITS.filter(function(x){return x.id===finder})[0];
+ var h='<div class="card tint-info stack"><h3>'+esc(s.t)+'</h3>';
+ if(s.note)h+='<p>'+esc(s.note)+'</p>';
+ if(s.route)h+='<p><a class="btn primary" href="#'+s.route+'">Go to the right page</a></p>';
+ if(s.les.length){h+='<div><p class="eyebrow">Practise it</p><div class="row" style="margin-top:6px">';s.les.forEach(function(l){h+='<a class="btn" href="#s-'+l+'">'+esc(SC[l].title)+'</a>'});h+='</div></div>'}
+ if(s.list)h+='<p><a href="#list-'+s.list+'">Open the '+esc(LIST[s.list].n)+' checklist</a></p>';
+ if(s.svc.length){h+='<div><p class="eyebrow">Official services</p><div class="grid" style="margin-top:6px">';s.svc.forEach(function(k){h+=svcCard(k)});h+='</div></div>'}
+ return h+'<p class="small muted">Directory only. These links go to official sites. This platform does not decide whether you are eligible for anything.</p></div>';
+}
+
+function vHome(){
+ var nx=nextScenario();
+ var ms=MISSIONS[weekIdx()%MISSIONS.length];var wk=weekKey();
+ var h='<div class="stack-lg"><section class="hero"><div class="stack"><p class="eyebrow">Singapore · for teens and young adults</p><h1>Pick a situation. Practise the decision. Leave with the right next step.</h1><p class="lead">Short scenarios for first jobs, scams, moving out and emergencies. Every claim links to an official source.</p><div class="row">'+
+ (nx?'<a class="btn primary" href="#s-'+nx.id+'">Start a 5-minute scenario</a>':'<a class="btn primary" href="#learn">Review a lesson</a>')+
+ '<a class="btn" href="#help">Quick Help</a></div></div><div>'+mapBlock()+'</div></section>'+
+ '<div class="pilot"><strong>Pilot build.</strong> Emergency, scam and support pages are checked against official sources but still need a qualified human reviewer before any public launch. Always confirm with the official source.</div>'+
+ '<section class="stack"><h2>Start from your situation</h2>'+situationFinder()+'</section>'+
+ '<section class="grid"><div class="card tint-sun stack"><p class="eyebrow">This week\'s mission</p><h3>'+esc(ms[0])+'</h3><div class="row"><a class="btn" href="#'+ms[1]+'">Open it</a><button class="btn quiet" data-act="mission" type="button" aria-pressed="'+(!!S.mission[wk])+'">'+(S.mission[wk]?'Done ✓ (tap to undo)':'Mark done')+'</button></div></div>'+
+ '<a class="link-card" href="#learn"><p class="eyebrow">Learn</p><h3>Five tracks, eleven scenarios</h3><p class="small muted">Money, documents, safety, work and housing.</p></a>'+
+ '<a class="link-card" href="#sources"><p class="eyebrow">Source library</p><h3>See where every fact comes from</h3><p class="small muted">Each source shows its review date, coverage and limits.</p></a></section></div>';
+ return h;
+}
+
+function vHelp(){
+ return '<div class="stack-lg"><div class="stack"><p class="eyebrow">Quick Help</p><h1>What do you need right now?</h1><p class="muted">No sign-in. Pick the closest one.</p></div>'+
+ '<div class="grid"><a class="link-card" style="border-color:var(--alert)" href="#help-emergency"><h3>Emergency now</h3><p class="small muted">Police, ambulance, fire, and what to do if talking is unsafe.</p></a>'+
+ '<a class="link-card" href="#help-scam"><h3>Scam check</h3><p class="small muted">Check a message or call, and what to do if you already paid.</p></a>'+
+ '<a class="link-card" href="#help-support"><h3>I need support</h3><p class="small muted">Someone to talk to, any time.</p></a>'+
+ '<a class="link-card" href="#help-find"><h3>Find an official service</h3><p class="small muted">Tell us the situation. We point to the right .gov.sg site.</p></a></div>'+
+ '<p class="small muted">This platform never dispatches help, listens to calls or replaces a professional.</p></div>';
+}
+function vEmergency(){
+ return '<div class="stack-lg"><div class="stack"><p class="eyebrow">Quick Help · Emergency</p><h1>Call first. Learn later.</h1></div>'+
+ '<div class="grid"><div class="call red"><span class="who">Police emergency</span><span class="big-num">999</span><p class="small">Crime in progress or immediate danger.</p></div>'+
+ '<div class="call red"><span class="who">Ambulance or fire (SCDF)</span><span class="big-num">995</span><p class="small">Life-threatening emergencies, for example someone not breathing or a fire.</p></div>'+
+ '<div class="call"><span class="who">Police SMS (talking is unsafe)</span><span class="big-num">70999</span><p class="small">For emergencies where speaking is unsafe, and for people who are deaf, mute or have a speech impairment.</p></div></div>'+
+ '<section class="card stack"><h2>Not life-threatening?</h2><ul style="margin:0;padding-left:20px;display:grid;gap:8px"><li><strong>NurseFirst 6262 6262</strong> gives advice on the right level of care. 995 calls assessed as non-emergencies are referred to NurseFirst.</li><li><strong>Non-emergency ambulance transport:</strong> private operators are listed at <a href="https://go.gov.sg/pao" target="_blank" rel="noopener noreferrer">go.gov.sg/pao</a>. The 1777 hotline ends on 1 January 2027.</li></ul></section>'+
+ '<p class="card tint-sun">Practise tells you the difference. In a real emergency you do not need this page: dial. <a href="#s-emergency">Practise "Emergency or not?"</a></p>'+
+ '<div class="stack"><h3>Source</h3>'+srcCard('spf')+srcCard('mha')+'</div></div>';
+}
+var scamFlags=[['u','They want me to act urgently'],['c','They ask for a password, OTP, Singpass or card details'],['l','There is a link in the SMS or email'],['o','They say they are from a bank, government agency or delivery company'],['m','They ask me to transfer money or buy vouchers'],['x','It came without me asking']];
+function scamOut(sel){
+ if(!sel.length)return '<p class="muted">Tick what you notice. This is a prompt, not a verdict.</p>';
+ var h='<div class="callout card tint-alert stack"><h3>What to do now</h3><ul style="margin:0;padding-left:20px;display:grid;gap:8px">';
+ if(sel.indexOf('c')>-1||sel.indexOf('l')>-1)h+='<li>Agencies and banks do not send links asking for personal or banking details. Do not tap, and do not share any details.</li>';
+ if(sel.indexOf('m')>-1)h+='<li>Government officials never ask you to transfer money over a phone call. Stop and hang up.</li>';
+ if(sel.indexOf('o')>-1)h+='<li>Check with that organisation using its official hotline, found by you (not from the message).</li>';
+ if(sel.indexOf('u')>-1)h+='<li>Pressure to hurry is a reason to slow down and check.</li>';
+ h+='<li>Not sure? Call the ScamShield helpline <strong>1799</strong> (24/7).</li></ul><p class="small">This tool cannot tell you if something is a scam. Only checking with the real organisation can.</p></div>';
+ return h;
+}
+var scamSel=[];
+function vScam(){
+ var h='<div class="stack-lg"><div class="stack"><p class="eyebrow">Quick Help · Scam check</p><h1>Pause. Check. Then act.</h1></div><section class="card stack"><h2>What do you notice?</h2><div class="stack" style="gap:8px">';
+ scamFlags.forEach(function(f){h+='<label class="check '+(scamSel.indexOf(f[0])>-1?'on':'')+'"><input type="checkbox" data-act="scamflag" value="'+f[0]+'"'+(scamSel.indexOf(f[0])>-1?' checked':'')+'><span>'+esc(f[1])+'</span></label>'});
+ h+='</div><div id="scam-out" aria-live="polite">'+scamOut(scamSel)+'</div></section>'+
+ '<section class="grid"><div class="call"><span class="who">ScamShield helpline</span><span class="big-num">1799</span><p class="small">24/7. From overseas: +65 6869 1799.</p></div>'+
+ '<div class="card stack"><h3>Already paid or shared details?</h3><p class="small">Call your bank and ask about its kill-switch. File a police report online. Call 1799 for advice. Tell someone you trust.</p><a class="btn" href="https://eservices1.police.gov.sg/phub/eservices/homepage" target="_blank" rel="noopener noreferrer">Police e-Report</a></div></section>'+
+ '<p><a class="btn primary" href="#s-scams">Practise: The job that paid me first</a></p>'+
+ '<div class="stack"><h3>Source</h3>'+srcCard('act')+srcCard('shh')+srcCard('sg')+'</div></div>';
+ return h;
+}
+function vSupport(){
+ return '<div class="stack-lg"><div class="stack"><p class="eyebrow">Quick Help · Support</p><h1>You do not have to sort it out alone.</h1><p class="muted">Feeling overwhelmed is common. Talking to someone is a normal next step.</p></div>'+
+ '<div class="call" style="background:var(--ok-soft);border-color:var(--calm)"><span class="who">National mindline 1771</span><span class="big-num">1771</span><p>Call 1771, WhatsApp 6669-1771, or use the webchat at <a href="https://mindline.sg/fsmh" target="_blank" rel="noopener noreferrer">mindline.sg/fsmh</a>.</p><p class="small muted">Check the official page for operating hours.</p></div>'+
+ '<div class="card tint-alert"><strong>In immediate danger or if someone may be seriously hurt:</strong> call 999 or 995 now.</div>'+
+ '<section class="card stack"><h3>Planning ahead</h3><p>Think of one adult or service you could contact on a hard day. <a href="#list-contacts">Save your Emergency Contacts</a>. They stay on this device.</p><p class="small muted">The older IMH Mental Health Helpline number (6389 2222) was retired on 18 June 2025. Use 1771.</p></section>'+
+ '<p><a class="btn" href="https://supportgowhere.life.gov.sg/" target="_blank" rel="noopener noreferrer">SupportGoWhere: other kinds of support</a></p>'+
+ '<p class="small muted">This site is not a crisis service and does not provide counselling.</p><div class="stack"><h3>Source</h3>'+srcCard('mind')+'</div></div>';
+}
+function vFind(){
+ return '<div class="stack-lg"><div class="stack"><p class="eyebrow">Quick Help · Official services</p><h1>Which official service is right?</h1></div>'+situationFinder()+'</div>';
+}
+
+function vLearn(){
+ var h='<div class="stack-lg"><div class="stack"><p class="eyebrow">Learn</p><h1>Five tracks. Short, practical, sourced.</h1></div><div class="stack">';
+ TRACKS.forEach(function(t){
+  var st=stat(t.id);
+  h+='<a class="link-card" href="#t-'+t.id+'"><div class="row" style="justify-content:space-between"><h2>'+esc(t.name)+'</h2><span class="badge '+badgeFor(st.k)+'">'+esc(st.l)+'</span></div><p>'+esc(t.tag)+'</p><p class="small muted">'+t.sc.length+' scenarios · '+esc(t.out)+'</p></a>';
+ });
+ return h+'</div></div>';
+}
+function vTrack(id){
+ var t=TR[id];if(!t)return vNone();
+ S.explored[id]=true;save();
+ var st=stat(id);
+ var h='<div class="stack-lg"><div class="stack"><p class="eyebrow"><a href="#learn">Learn</a> · Track</p><h1>'+esc(t.name)+'</h1><p class="lead muted">'+esc(t.tag)+'</p><p>'+esc(t.out)+'</p></div>'+
+ '<div class="stack">';
+ t.sc.forEach(function(sid){var s=SC[sid],p=S.progress[sid];
+  h+='<a class="link-card" href="#s-'+sid+'"><div class="row" style="justify-content:space-between"><h3>'+esc(s.title)+'</h3>'+(p?'<span class="badge ok">Practised</span>':'<span class="badge">'+s.min+' min</span>')+'</div><p class="small muted">'+esc(s.obj)+'</p><div class="tag-row">'+riskBadge(s.risk)+(s.gen?'<span class="badge">general orientation</span>':'')+'</div></a>'});
+ h+='</div><p class="card tint-info small">'+esc(t.rule)+'</p>'+
+ '<div class="row"><a class="btn" href="#list-'+t.list+'">Open the '+esc(LIST[t.list].n)+' checklist</a>'+
+ '<button class="btn quiet" data-act="support" data-id="'+id+'" type="button" aria-pressed="'+(!!S.support[id])+'">'+(S.support[id]?'Marked: I want more support here (tap to clear)':'I would like more support here')+'</button></div></div>';
+ return h;
+}
+
+function railHtml(r,s){
+ var labels=['Situation','Choose','Consequence','Learn why','Verify'];
+ var cur=0;
+ if(r.phase==='steps')cur=r.picked==null?1:3;
+ if(r.phase==='tool')cur=3;
+ if(r.phase==='check')cur=3;
+ if(r.phase==='done')cur=4;
+ var h='<ol class="rail" aria-label="Progress through the scenario">';
+ labels.forEach(function(l,i){h+='<li'+(i===cur?' aria-current="step"':'')+(i<cur?' class="done"':'')+'>'+l+'</li>'});
+ return h+'</ol>';
+}
+var run=null;
+function startRun(id){run={id:id,phase:'intro',i:0,picked:null,picks:[],qi:0,qpicked:null,qpicks:[],ticks:{}}}
+function chatHtml(th){return '<div class="chat" role="log" aria-label="Messages">'+th.map(function(m){var w=m[0],t=m[1];
+ if(w==='sys')return '<p class="c-sys">'+esc(t)+'</p>';
+ if(w==='me')return '<p class="c-me">'+esc(t)+'</p>';
+ return '<p class="c-them"><span class="c-n">'+esc(w)+'</span>'+esc(t)+'</p>'}).join('')+'</div>'}
+function vScenario(id){
+ var s=SC[id];if(!s)return vNone();
+ if(!run||run.id!==id)startRun(id);
+ var t=TR[s.track];
+ var h='<div class="stack-lg"><div class="stack"><p class="eyebrow"><a href="#t-'+t.id+'">'+esc(t.name)+'</a> · '+s.min+' min</p><h1 id="sh" tabindex="-1">'+esc(s.title)+'</h1><div class="tag-row">'+riskBadge(s.risk)+(s.gen?'<span class="badge">general orientation</span>':'')+'</div>'+railHtml(run,s)+'</div>';
+ if(run.phase==='intro'){
+  h+='<section class="card stack"><p class="eyebrow">Situation</p>'+(s.who?'<p class="who-tag">'+esc(s.who)+'</p>':'')+'<p style="font-size:1.1rem">'+esc(s.sit)+'</p>'+(s.real?'<p class="real-tag"><strong>What this is based on.</strong> '+esc(s.real)+'</p>':'')+'<p class="small muted"><strong>You will practise:</strong> '+esc(s.obj)+'</p><p class="small muted">'+esc(s.assume)+'</p>'+
+   (s.risk==='high'?'<p class="small card tint-sun">High-risk topic. Pilot build: awaiting qualified review. Confirm with the official source.</p>':'')+
+   '<div><button class="btn primary" data-act="begin" type="button">Start</button></div></section>';
+ }else if(run.phase==='steps'){
+  var st=s.steps[run.i];
+  h+='<section class="card stack" aria-live="polite"><p class="eyebrow">Moment '+(run.i+1)+' of '+s.steps.length+'</p>'+(st.thread?chatHtml(st.thread):'')+(st.msg?'<div class="msg">'+esc(st.msg)+'</div>':'')+'<h2 id="qh" tabindex="-1" style="font-size:1.25rem">'+esc(st.q)+'</h2><div class="opts">';
+  var okIdx=-1;st.o.forEach(function(o,i){if(o.ok)okIdx=i});
+  st.o.forEach(function(o,i){
+   var cls='opt';
+   if(run.picked!=null){if(i===run.picked)cls+=(o.r===2||(o.r==null&&o.ok))?' chosen-ok':(o.r===1?' chosen-mid':' chosen-no');else if(o.ok)cls+=' was-ok'}
+   h+='<button class="'+cls+'" type="button" data-act="pick" data-i="'+i+'"'+(run.picked!=null?' disabled':'')+'>'+esc(o.t)+'</button>';
+  });
+  h+='</div>';
+  if(run.picked!=null){
+   var c=st.o[run.picked],best=st.o[okIdx],lv=c.ok?2:(c.r===1?1:0);
+   var head=['This one costs you','Workable, with a catch','Strongest move'][lv];
+   h+='<div class="callout card '+(lv===2?'tint-ok':lv===1?'tint-sun':'tint-alert')+' stack"><div class="verdict"><span class="mark '+(lv===2?'ok':lv===1?'mid':'no')+'" aria-hidden="true">'+(lv===2?'\u2713':lv===1?'~':'!')+'</span><div class="stack" style="gap:6px"><strong>'+head+'</strong><p>'+esc(c.c)+'</p></div></div>'+
+    (c.ok?'':'<p class="small"><strong>Strongest move:</strong> '+esc(best.t)+'</p>')+
+    '<p class="small"><strong>Why:</strong> '+esc(c.ok?c.w:best.w)+'</p>'+
+    (best.say?'<blockquote class="say"><span class="say-l">What you could actually say</span>'+esc(best.say)+'</blockquote>':'')+'</div>'+
+    '<div><button class="btn primary" data-act="next" type="button">'+(run.i<s.steps.length-1?'Next moment':'Continue')+'</button></div>';
+  }
+  h+='</section>';
+ }else if(run.phase==='tool'){
+  h+='<section class="card stack"><p class="eyebrow">Try it</p>'+toolHtml(s)+'<div><button class="btn primary" data-act="toolnext" type="button">Continue to two quick questions</button></div></section>';
+ }else if(run.phase==='check'){
+  var q=s.chk[run.qi];
+  h+='<section class="card stack" aria-live="polite"><p class="eyebrow">Knowledge check · '+(run.qi+1)+' of '+s.chk.length+'</p><h2 id="qh" tabindex="-1" style="font-size:1.25rem">'+esc(q.q)+'</h2><div class="opts">';
+  q.o.forEach(function(o,i){
+   var cls='opt';if(run.qpicked!=null){if(i===run.qpicked)cls+=(i===q.a)?' chosen-ok':' chosen-no';else if(i===q.a)cls+=' was-ok'}
+   h+='<button class="'+cls+'" type="button" data-act="qpick" data-i="'+i+'"'+(run.qpicked!=null?' disabled':'')+'>'+esc(o)+'</button>'});
+  h+='</div>';
+  if(run.qpicked!=null){var okq=run.qpicked===q.a;
+   h+='<div class="callout card '+(okq?'tint-ok':'tint-alert')+'"><strong>'+(okq?'Right.':'Not quite.')+'</strong> '+esc(q.w)+'</div><div><button class="btn primary" data-act="qnext" type="button">'+(run.qi<s.chk.length-1?'Next question':'See my takeaway')+'</button></div>'}
+  h+='</section>';
+ }else{
+  var p=S.progress[s.id];
+  var next=nextScenario();
+  h+='<section class="card tint-ok stack"><p class="eyebrow">Takeaway</p><p style="font-size:1.1rem">'+esc(s.take)+'</p><p class="small">You made '+p.d+' of '+s.steps.length+' safer choices and answered '+p.c+' of '+s.chk.length+' questions right. There is no pass or fail. Practise again any time.</p></section>'+
+  '<section class="stack"><h2>Verify with the source</h2><p class="muted small">Check the official page before you act. Rules and numbers can change.</p>'+s.src.map(srcCard).join('')+'</section>'+
+  '<div class="row"><a class="btn" href="#list-'+s.list+'">Save the '+esc(LIST[s.list].n)+' checklist</a><button class="btn quiet" data-act="restart" type="button">Practise again</button>'+(next?'<a class="btn primary" href="#s-'+next.id+'">Next: '+esc(next.title)+'</a>':'<a class="btn primary" href="#journey">See my journey</a>')+'</div>';
+ }
+ return h+'</div>';
+}
+function calcCpf(g){if(!(g>0))return null;if(g<=750)return {low:true};var e=g*.2,r=g*.17;return {e:e,r:r,t:e+r,net:g-e}}
+function cpfOut(g){var c=calcCpf(g);
+ if(!c)return '<p class="muted">Enter a monthly wage above $750.</p>';
+ if(c.low)return '<p class="callout card tint-sun">At or below $750 a month, different rates apply. See the CPF Board rate table.</p>';
+ return '<div class="scroll-x"><table><tbody><tr><th scope="row">Gross wage (example)</th><td class="r">'+money(g)+'</td></tr><tr><th scope="row">Employee CPF, 20%</th><td class="r">− '+money(c.e)+'</td></tr><tr><th scope="row">Net pay (before other deductions)</th><td class="r"><strong>'+money(c.net)+'</strong></td></tr><tr><th scope="row">Employer CPF, 17%, paid on top</th><td class="r">'+money(c.r)+'</td></tr><tr><th scope="row">Total to CPF, 37%</th><td class="r">'+money(c.t)+'</td></tr></tbody></table></div><p class="small muted">Assumes age 55 and below. Real payslips can differ by cents, and the wages CPF counts have a monthly ceiling. Check the CPF Board.</p>';
+}
+var BF=[['dep','One-time: deposit and move-in items',1500],['rent','Rent (monthly)',900],['util','Utilities (monthly)',60],['food','Food (monthly)',350],['trans','Transport (monthly)',100],['phone','Phone and internet (monthly)',40],['other','Other regular costs (monthly)',100],['buf','Buffer for surprises (monthly)',100],['take','Monthly take-home pay (optional)',2000]];
+function budgetVals(){var v=S.budget||{};var o={};BF.forEach(function(f){o[f[0]]=(v[f[0]]!=null)?v[f[0]]:f[2]});return o}
+function budgetOut(){
+ var v=budgetVals();function n(k){return Math.max(0,Number(v[k])||0)}
+ var mo=n('rent')+n('util')+n('food')+n('trans')+n('phone')+n('other')+n('buf'),first=n('dep')+mo,take=n('take');
+ var h='<div class="scroll-x"><table><tbody><tr><th scope="row">Monthly costs (with buffer)</th><td class="r">'+money(mo)+'</td></tr><tr><th scope="row">First month (one-time + monthly)</th><td class="r"><strong>'+money(first)+'</strong></td></tr>';
+ if(take>0){h+='<tr><th scope="row">Monthly costs as a share of take-home</th><td class="r">'+pct(mo,take)+'%</td></tr><tr><th scope="row">Take-home minus monthly costs</th><td class="r">'+money(take-mo)+'</td></tr>'}
+ return h+'</tbody></table></div><p class="small muted">Arithmetic only. This does not say whether you can afford a place. Compare with MoneySense guidance.</p>';
+}
+function toolHtml(s){
+ if(s.tool==='cpf')return '<h3>CPF simulator (fictional numbers)</h3><div class="field" style="max-width:260px"><label for="cpf-g">Example monthly wage ($)</label><input id="cpf-g" type="number" inputmode="decimal" min="0" step="50" value="2500" data-act="cpf"></div><div id="cpf-out" aria-live="polite">'+cpfOut(2500)+'</div>';
+ if(s.tool==='budget'){var v=budgetVals();var h='<h3>Move-out budget</h3><p class="small card tint-sun">Example numbers (fictional). Replace them with yours. They stay on this device.</p><div class="fields">';
+  BF.forEach(function(f){h+='<div class="field"><label for="b-'+f[0]+'">'+esc(f[1])+' ($)</label><input id="b-'+f[0]+'" type="number" inputmode="decimal" min="0" step="10" value="'+esc(v[f[0]])+'" data-act="budget" data-k="'+f[0]+'"></div>'});
+  return h+'</div><div id="b-out" aria-live="polite">'+budgetOut()+'</div><div><button class="btn quiet" type="button" data-act="budgetreset">Reset to examples</button></div>';}
+ if(s.tool==='kets'||s.tool==='slip'){var items=s.tool==='kets'?KETS:SLIP;var key=s.tool;var h2='<h3>'+(s.tool==='kets'?'Compare an offer with the 18 KETs items':'Compare a payslip with the 12 required items')+'</h3><p class="small muted">Tick what you can find on your (real or imagined) document. Nothing is saved.</p><div class="stack" style="gap:8px">';
+  items.forEach(function(it,i){h2+='<label class="check"><input type="checkbox" data-act="tick" data-i="'+i+'"><span>'+esc(it)+'</span></label>'});
+  return h2+'</div><div id="tick-out" aria-live="polite">'+tickOut(items.length,0,s.tool)+'</div>';}
+ return '';
+}
+function tickOut(total,n,tool){
+ var msg=tool==='kets'?'Items that do not apply (for example contract duration for an open-ended job) can be skipped. Missing items are a question to ask your employer.':'Items that do not apply can be skipped. A missing item is a question for HR.';
+ return '<div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:'+pct(n,total)+'%"></div></div><p><strong>'+n+' of '+total+'</strong> found. '+msg+'</p>';
+}
+
+function vList(id){
+ var l=LIST[id];if(!l)return vNone();
+ var c=S.checks[id]||{};
+ var h='<div class="stack-lg"><div class="stack"><p class="eyebrow"><a href="#journey">My Journey</a> · Checklist</p><h1>'+esc(l.n)+'</h1><p class="muted">Saved on this device only.</p></div><div class="stack" style="gap:8px">';
+ if(l.contacts){
+  h+='<p class="card tint-info small">Write names or initials only. Do not write passwords, ID numbers or bank details here.</p>';
+  CONTACT_PROMPTS.forEach(function(p,i){var v=(S.contacts[i]||'');h+='<div class="field"><label for="ct-'+i+'">'+esc(p)+'</label><input id="ct-'+i+'" type="text" maxlength="80" value="'+esc(v)+'" data-act="contact" data-i="'+i+'" autocomplete="off"></div>'});
+  h+='<p class="card tint-alert small">Remember the official numbers: Police 999 · Ambulance or fire 995 · Police SMS 70999 · National mindline 1771.</p>';
+ }else{
+  var done=0;l.items.forEach(function(it,i){var on=!!c[i];if(on)done++;h+='<label class="check '+(on?'on':'')+'"><input type="checkbox" data-act="listcheck" data-id="'+id+'" data-i="'+i+'"'+(on?' checked':'')+'><span>'+esc(it)+'</span></label>'});
+  h+='<p class="prog" id="lp">'+done+' of '+l.items.length+' done</p>';
+ }
+ return h+'</div><div class="row"><a class="btn" href="#journey">Back to My Journey</a>'+(l.contacts?'':'<button class="btn quiet" type="button" data-act="listreset" data-id="'+id+'">Clear ticks</button>')+'</div></div>';
+}
+
+function vJourney(){
+ var done=Object.keys(S.progress);
+ var h='<div class="stack-lg"><div class="stack"><p class="eyebrow">My Journey</p><h1>Where you are on the map</h1></div>'+mapBlock();
+ h+='<section class="stack"><h2>Completed lessons</h2>';
+ if(!done.length)h+='<p class="muted">None yet. <a href="#learn">Start with one five-minute scenario.</a></p>';
+ else{h+='<div class="scroll-x"><table><thead><tr><th>Lesson</th><th class="r">Choices</th><th class="r">Questions</th></tr></thead><tbody>';
+  done.forEach(function(id){var p=S.progress[id],s=SC[id];if(!s)return;h+='<tr><td><a href="#s-'+id+'">'+esc(s.title)+'</a></td><td class="r">'+p.d+'/'+s.steps.length+'</td><td class="r">'+p.c+'/'+s.chk.length+'</td></tr>'});
+  h+='</tbody></table></div>'}
+ h+='</section><section class="stack"><h2>Checklists</h2><div class="grid">';
+ LISTS.forEach(function(l){var c=S.checks[l.id]||{},n=0;if(l.items)Object.keys(c).forEach(function(k){if(c[k])n++});
+  h+='<a class="link-card" href="#list-'+l.id+'"><h3>'+esc(l.n)+'</h3><p class="small muted">'+(l.items?n+' of '+l.items.length+' done':'Names stored locally')+'</p></a>'});
+ h+='</div></section><section class="stack"><h2>My notes</h2><div class="field"><label for="notes">Private notes (stay on this device)</label><textarea id="notes" data-act="notes" maxlength="2000">'+esc(S.notes)+'</textarea></div><p class="small muted">Do not write passwords, ID numbers or bank details.</p></section></div>';
+ return h;
+}
+
+function vSources(){
+ var h='<div class="stack-lg"><div class="stack"><p class="eyebrow">Source library</p><h1>Where every fact comes from</h1><p class="muted">Every sensitive lesson points to an official page. Each card says what it covers and what it does not.</p></div><div class="stack">';
+ Object.keys(SRC).forEach(function(k){h+=srcCard(k)});
+ return h+'</div></div>';
+}
+
+function quizFor(tid){var q=[];TR[tid].sc.forEach(function(sid){SC[sid].chk.forEach(function(c){q.push(c)})});return q}
+function packText(tid){
+ var t=TR[tid],L=[];
+ L.push('WayFinder SG lesson pack: '+t.name);L.push('Outcome: '+t.out);L.push('');
+ L.push('SCENARIOS');t.sc.forEach(function(sid){var s=SC[sid];L.push('- '+s.title+' ('+s.min+' min, '+s.risk+' risk)');L.push('  Discussion prompt: '+s.dp)});
+ L.push('');L.push('PRE/POST QUESTIONS (answer in brackets)');
+ quizFor(tid).forEach(function(q,i){L.push((i+1)+'. '+q.q+' '+q.o.map(function(o,j){return String.fromCharCode(97+j)+') '+o}).join('  ')+' ['+String.fromCharCode(97+q.a)+']')});
+ L.push('');L.push('SOURCES');t.sc.forEach(function(sid){SC[sid].src.forEach(function(k){L.push('- '+SRC[k].org+': '+SRC[k].t+' '+SRC[k].u)})});
+ L.push('');L.push('FACILITATION NOTES');L.push('Use fictional examples only. Do not ask students for personal documents or real financial details. '+t.rule);
+ L.push('Pilot build: high-risk lessons await qualified review. Confirm facts against the sources above before class.');
+ return L.join('\n');
+}
+var eduTrack='money';
+function vEdu(){
+ var h='<div class="stack-lg"><div class="stack"><p class="eyebrow">For educators</p><h1>Run one lesson without explaining the whole product</h1><p class="muted">Choose a track. You get scenarios, discussion prompts, pre/post questions and the source list. No student data is collected.</p></div>';
+ h+='<div class="field" style="max-width:360px"><label for="edu-t">Track</label><select id="edu-t" data-act="edutrack">';
+ TRACKS.forEach(function(t){h+='<option value="'+t.id+'"'+(t.id===eduTrack?' selected':'')+'>'+esc(t.name)+'</option>'});
+ h+='</select></div><section class="card stack"><h2>Lesson pack</h2><label for="pack">Copy this into your own document or slides</label><textarea id="pack" readonly style="min-height:260px;font-family:var(--mono);font-size:.85rem">'+esc(packText(eduTrack))+'</textarea><div><button class="btn" type="button" data-act="copypack">Copy lesson pack</button> <span id="copy-msg" class="small muted" aria-live="polite"></span></div></section>';
+ var qs=quizFor(eduTrack),pp=(S.prepost[eduTrack]||{});
+ h+='<section class="card stack"><h2>Pre/post check (this device only)</h2><p class="small muted">Run it before and after a lesson. Results show on this device only. A class summary needs a server, which this pilot does not have. Ask students to read out their own score if you want a class view.</p><form id="pp" class="stack">';
+ h+='<div class="field" style="max-width:360px"><label for="pp-mode">When</label><select id="pp-mode"><option value="pre">Before the lesson</option><option value="post">After the lesson</option></select></div><div class="field" style="max-width:360px"><label for="pp-conf">How confident do you feel handling this (1 to 5)?</label><select id="pp-conf"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></div>';
+ qs.forEach(function(q,i){h+='<fieldset style="border:1px solid var(--line);border-radius:12px;padding:12px"><legend style="font-weight:700;padding:0 6px">'+(i+1)+'. '+esc(q.q)+'</legend>';q.o.forEach(function(o,j){h+='<label class="check" style="margin-top:6px"><input type="radio" name="q'+i+'" value="'+j+'"><span>'+esc(o)+'</span></label>'});h+='</fieldset>'});
+ h+='<div><button class="btn primary" type="submit">Save my result</button></div></form><div id="pp-out" aria-live="polite">'+ppOut(eduTrack,qs.length)+'</div></section></div>';
+ return h;
+}
+function ppOut(tid,total){var p=S.prepost[tid]||{};if(!p.pre&&!p.post)return '<p class="muted small">No results saved yet.</p>';
+ var h='<div class="scroll-x"><table><thead><tr><th></th><th class="r">Score</th><th class="r">Confidence</th></tr></thead><tbody>';
+ if(p.pre)h+='<tr><td>Before</td><td class="r">'+p.pre.s+'/'+total+'</td><td class="r">'+p.pre.c+'/5</td></tr>';
+ if(p.post)h+='<tr><td>After</td><td class="r">'+p.post.s+'/'+total+'</td><td class="r">'+p.post.c+'/5</td></tr>';
+ h+='</tbody></table></div>';
+ if(p.pre&&p.post)h+='<p><strong>Change:</strong> score '+(p.post.s-p.pre.s>=0?'+':'')+(p.post.s-p.pre.s)+', confidence '+(p.post.c-p.pre.c>=0?'+':'')+(p.post.c-p.pre.c)+'. One small check is not evidence of wider impact.</p>';
+ return h;
+}
+
+function vAbout(){
+ var h='<div class="stack-lg"><div class="stack"><p class="eyebrow">About</p><h1>Method, privacy and corrections</h1></div>'+
+ '<section class="card stack"><h2>What this is</h2><p>WayFinder SG is the learning layer between confusion and the correct official service. It teaches with fictional scenarios, then sends you to the official source. It is not a government service and has no government authority.</p><p>It does not give personal legal, medical, investment or tax advice, decide eligibility, or collect identity documents.</p></section>'+
+ '<section class="card stack"><h2>How content is checked</h2><ul style="margin:0;padding-left:20px;display:grid;gap:6px"><li><strong>Low risk:</strong> general planning and study habits.</li><li><strong>Medium risk:</strong> employment, tax, housing and money. Needs an official source and a review date.</li><li><strong>High risk:</strong> emergencies, support, legal rights, identity and scams. Needs an official source plus a qualified human reviewer.</li></ul><p>Drafts may be written with AI help. This pilot\'s high-risk lessons have been checked against official pages by the student creator, and still await review by a qualified adult before any public launch.</p></section>'+
+ '<section class="card stack"><h2>Privacy</h2><ul style="margin:0;padding-left:20px;display:grid;gap:6px"><li>No account, no name, no analytics, no advertising.</li><li>Progress, checklists and notes are saved in this browser only.</li><li>The page loads fonts from Google Fonts, which means Google can see that a font was requested.</li><li>Nothing you type leaves your device.</li></ul>'+
+ '<div><button class="btn danger" type="button" data-act="erase1">Erase everything on this device</button></div><div id="erase-zone" aria-live="polite"></div></section>'+
+ '<section class="card stack"><h2>Reading and display</h2><div class="stack" style="gap:8px"><label class="check"><input type="checkbox" data-act="pref" data-k="big"'+(S.prefs.big?' checked':'')+'><span>Larger text</span></label><label class="check"><input type="checkbox" data-act="pref" data-k="space"'+(S.prefs.space?' checked':'')+'><span>More letter and line spacing</span></label><label class="check"><input type="checkbox" data-act="pref" data-k="calm"'+(S.prefs.calm?' checked':'')+'><span>Calm mode: no animation</span></label></div></section>'+
+ '<section class="card stack"><h2>Public changelog</h2><div class="stack" style="gap:10px">';
+ CHANGELOG.forEach(function(c){h+='<div><strong>'+esc(c[0])+'</strong><p>'+esc(c[1])+'</p></div>'});
+ h+='</div></section><p><a class="btn" href="#corrections">Report an outdated or confusing item</a></p></div>';
+ return h;
+}
+function vCorrections(){
+ var h='<div class="stack-lg"><div class="stack"><p class="eyebrow"><a href="#about">About</a> · Corrections</p><h1>Report an issue</h1><p class="muted">No account needed. This pilot has no server, so the report is saved on this device and prepared for you to send to the project owner.</p></div>'+
+ '<form id="cr" class="card stack"><div class="field"><label for="cr-type">What kind of issue?</label><select id="cr-type"><option>Outdated</option><option>Unclear</option><option>Broken link</option><option>Safety concern</option></select></div><div class="field"><label for="cr-where">Which lesson or source card?</label><input id="cr-where" type="text" maxlength="120"></div><div class="field"><label for="cr-note">What should change?</label><textarea id="cr-note" maxlength="800"></textarea></div><div><button class="btn primary" type="submit">Prepare my report</button></div></form><div id="cr-out" aria-live="polite" class="stack"></div>';
+ if(S.corrections.length){h+='<section class="stack"><h2>Reports saved on this device</h2>';S.corrections.slice().reverse().forEach(function(c){h+='<div class="card small"><strong>'+esc(c.type)+'</strong> · '+esc(c.where)+' · '+esc(c.date)+'<p>'+esc(c.note)+'</p></div>'});h+='</section>'}
+ return h+'<p class="small muted">Safety concern about a real emergency? Do not use this form. Call 999 or 995.</p></div>';
+}
+function vNone(){return '<div class="stack"><h1>Page not found</h1><p><a class="btn" href="#home">Go home</a></p></div>'}
+
+/* ---------- router ---------- */
+var NAV=[['home','Home'],['help','Quick Help'],['learn','Learn'],['journey','My Journey'],['sources','Source Library'],['educators','For Educators'],['about','About']];
+function route(){
+ var r=(location.hash||'#home').slice(1)||'home',h='',key=r;
+ if(r==='home')h=vHome();
+ else if(r==='help')h=vHelp();
+ else if(r==='help-emergency')h=vEmergency();
+ else if(r==='help-scam')h=vScam();
+ else if(r==='help-support')h=vSupport();
+ else if(r==='help-find')h=vFind();
+ else if(r==='learn')h=vLearn();
+ else if(r.indexOf('t-')===0)h=vTrack(r.slice(2));
+ else if(r.indexOf('s-')===0)h=vScenario(r.slice(2));
+ else if(r.indexOf('list-')===0)h=vList(r.slice(5));
+ else if(r==='journey')h=vJourney();
+ else if(r==='sources')h=vSources();
+ else if(r==='educators')h=vEdu();
+ else if(r==='about')h=vAbout();
+ else if(r==='corrections')h=vCorrections();
+ else h=vNone();
+ var sec=r.indexOf('help')===0?'help':(r.indexOf('t-')===0||r.indexOf('s-')===0)?'learn':r.indexOf('list-')===0?'journey':r==='corrections'?'about':r;
+ $('#nav').innerHTML=NAV.map(function(n){return '<a href="#'+n[0]+'"'+(n[0]===sec?' aria-current="page"':'')+'>'+n[1]+'</a>'}).join('')+'<a href="toolkit.html">Toolkit</a>';
+ $('#app').innerHTML=h;
+ if(!(r.indexOf('s-')===0&&run&&run.id===r.slice(2)&&run.phase!=='intro')||true){}
+ window.scrollTo(0,0);
+}
+function render(focus){
+ var y=window.scrollY;route();
+ if(focus){var el=$('#qh')||$('#sh')||$('#app h1');if(el){el.setAttribute('tabindex','-1');el.focus({preventScroll:false})}}
+ else window.scrollTo(0,y);
+}
+window.addEventListener('hashchange',function(){var r=(location.hash||'#home').slice(1);if(r.indexOf('s-')===0&&run&&run.id!==r.slice(2))run=null;scamSel=[];route();var el=$('#app h1');if(el){el.setAttribute('tabindex','-1');el.focus()}});
+
+/* ---------- events ---------- */
+document.addEventListener('click',function(e){
+ var b=e.target.closest('[data-act]');if(!b)return;var a=b.getAttribute('data-act');var sid=run&&run.id,s=sid&&SC[sid];
+ if(a==='sit'){finder=b.getAttribute('data-id');$$('.chip').forEach(function(c){c.setAttribute('aria-pressed',String(c.getAttribute('data-id')===finder))});$('#sit-out').innerHTML=sitOut();return}
+ if(a==='mission'){var k=weekKey();S.mission[k]=!S.mission[k];save();render();return}
+ if(a==='support'){var id=b.getAttribute('data-id');S.support[id]=!S.support[id];save();render();return}
+ if(a==='begin'){run.phase='steps';render(true);return}
+ if(a==='pick'&&run.picked==null){var i=+b.getAttribute('data-i');run.picked=i;run.picks[run.i]=i;render(false);var cb=$('.callout');if(cb)cb.scrollIntoView({block:'nearest'});return}
+ if(a==='next'&&run.picked!=null){if(run.i<s.steps.length-1){run.i++;run.picked=null}else{run.phase=s.tool?'tool':'check'}render(true);return}
+ if(a==='toolnext'){run.phase='check';render(true);return}
+ if(a==='qpick'&&run.qpicked==null){var qi=+b.getAttribute('data-i');run.qpicked=qi;run.qpicks[run.qi]=qi;render(false);var cb2=$('.callout');if(cb2)cb2.scrollIntoView({block:'nearest'});return}
+ if(a==='qnext'&&run.qpicked!=null){
+  if(run.qi<s.chk.length-1){run.qi++;run.qpicked=null;render(true)}
+  else{var d=0,c=0;s.steps.forEach(function(st,ix){if(st.o[run.picks[ix]]&&st.o[run.picks[ix]].ok)d++});s.chk.forEach(function(q,ix){if(run.qpicks[ix]===q.a)c++});
+   S.progress[s.id]={d:d,c:c,s:d+c,m:s.steps.length+s.chk.length,at:new Date().toISOString().slice(0,10)};save();run.phase='done';render(true)}
+  return}
+ if(a==='restart'){startRun(sid);render(true);return}
+ if(a==='budgetreset'){S.budget=null;save();render();return}
+ if(a==='listreset'){var lid=b.getAttribute('data-id');S.checks[lid]={};save();render();return}
+ if(a==='copypack'){var ta=$('#pack');var msg=$('#copy-msg');var done=function(m){msg.textContent=m};
+  try{navigator.clipboard.writeText(ta.value).then(function(){done('Copied.')},function(){ta.focus();ta.select();done('Press Ctrl+C (or long-press) to copy.')})}catch(er){ta.focus();ta.select();done('Press Ctrl+C (or long-press) to copy.')}return}
+ if(a==='erase1'){$('#erase-zone').innerHTML='<div class="callout card tint-alert stack"><p><strong>This clears progress, checklists, notes and contacts on this device. It cannot be undone.</strong></p><div class="row"><button class="btn danger" type="button" data-act="erase2">Yes, erase everything</button><button class="btn" type="button" data-act="erase0">Cancel</button></div></div>';return}
+ if(a==='erase0'){$('#erase-zone').innerHTML='';return}
+ if(a==='erase2'){S=def();save();applyPrefs();render();return}
+});
+document.addEventListener('input',function(e){
+ var t=e.target,a=t.getAttribute&&t.getAttribute('data-act');if(!a)return;
+ if(a==='cpf'){$('#cpf-out').innerHTML=cpfOut(Number(t.value))}
+ else if(a==='budget'){S.budget=S.budget||{};S.budget[t.getAttribute('data-k')]=t.value===''?0:Number(t.value);save();$('#b-out').innerHTML=budgetOut()}
+ else if(a==='notes'){S.notes=t.value;save()}
+ else if(a==='contact'){S.contacts[t.getAttribute('data-i')]=t.value;save()}
+});
+document.addEventListener('change',function(e){
+ var t=e.target,a=t.getAttribute&&t.getAttribute('data-act');if(!a)return;
+ if(a==='tick'){var n=$$('[data-act="tick"]').filter(function(c){return c.checked}).length;var tot=$$('[data-act="tick"]').length;$('#tick-out').innerHTML=tickOut(tot,n,SC[run.id].tool);t.closest('.check').classList.toggle('on',t.checked)}
+ else if(a==='listcheck'){var id=t.getAttribute('data-id'),i=t.getAttribute('data-i');S.checks[id]=S.checks[id]||{};S.checks[id][i]=t.checked;save();t.closest('.check').classList.toggle('on',t.checked);var d=0;Object.keys(S.checks[id]).forEach(function(k){if(S.checks[id][k])d++});$('#lp').textContent=d+' of '+LIST[id].items.length+' done'}
+ else if(a==='scamflag'){var v=t.value;var ix=scamSel.indexOf(v);if(t.checked&&ix<0)scamSel.push(v);if(!t.checked&&ix>-1)scamSel.splice(ix,1);$('#scam-out').innerHTML=scamOut(scamSel);t.closest('.check').classList.toggle('on',t.checked)}
+ else if(a==='edutrack'){eduTrack=t.value;render()}
+ else if(a==='pref'){S.prefs[t.getAttribute('data-k')]=t.checked;save();applyPrefs()}
+});
+document.addEventListener('submit',function(e){
+ e.preventDefault();var f=e.target;
+ if(f.id==='pp'){var qs=quizFor(eduTrack),sc=0;qs.forEach(function(q,i){var r=f.querySelector('input[name="q'+i+'"]:checked');if(r&&+r.value===q.a)sc++});var mode=$('#pp-mode').value;S.prepost[eduTrack]=S.prepost[eduTrack]||{};S.prepost[eduTrack][mode]={s:sc,c:Number($('#pp-conf').value)};save();$('#pp-out').innerHTML=ppOut(eduTrack,qs.length)}
+ if(f.id==='cr'){var rec={type:$('#cr-type').value,where:$('#cr-where').value||'(not stated)',note:$('#cr-note').value||'(no details)',date:new Date().toISOString().slice(0,10)};S.corrections.push(rec);save();
+  var txt='WayFinder SG correction report\nType: '+rec.type+'\nWhere: '+rec.where+'\nDetails: '+rec.note+'\nDate: '+rec.date;
+  $('#cr-out').innerHTML='<div class="card tint-ok stack"><strong>Saved on this device.</strong><p class="small">Copy this text and send it to the project owner. The owner\'s contact route will be added before public release.</p><textarea readonly id="cr-txt" style="min-height:130px">'+esc(txt)+'</textarea><div><button class="btn" type="button" id="cr-copy">Copy report</button></div></div>';
+  var cb=$('#cr-copy');if(cb)cb.onclick=function(){var ta=$('#cr-txt');try{navigator.clipboard.writeText(ta.value).catch(function(){ta.select()})}catch(er){ta.select()}};f.reset()}
+});
+$('#skip').addEventListener('click',function(){var m=$('#app');m.focus();m.scrollIntoView()});
+
+/* ---------- prefs / theme ---------- */
+function applyPrefs(){
+ document.documentElement.classList.toggle('big',!!S.prefs.big);
+ document.body.classList.toggle('space',!!S.prefs.space);
+ document.body.classList.toggle('calm',!!S.prefs.calm);
+ var th=S.prefs.theme||'auto',r=document.documentElement;
+ if(th==='auto')r.removeAttribute('data-theme');else r.setAttribute('data-theme',th);
+ var b=$('#theme');if(b)b.textContent='Theme: '+(th==='auto'?'Auto':th==='light'?'Light':'Dark');
+}
+$('#theme').addEventListener('click',function(){var o=['auto','light','dark'];var i=(o.indexOf(S.prefs.theme||'auto')+1)%3;S.prefs.theme=o[i];save();applyPrefs()});
+applyPrefs();route();
+window.WF={SCEN:SCEN,SC:SC,TRACKS:TRACKS,calcCpf:calcCpf,stat:stat,S:function(){return S}};
+})();
+
+/* chat messages arrive one at a time, with typing dots. Click the chat to skip. */
+(function(){
+ var lastKey='';
+ function calm(){return document.documentElement.classList.contains('calm')||matchMedia('(prefers-reduced-motion: reduce)').matches}
+ function run(chat){
+  if(chat.getAttribute('data-seen'))return;chat.setAttribute('data-seen','1');
+  var sec=chat.closest('section'),q=sec&&sec.querySelector('#qh'),o=sec&&sec.querySelector('.opts');
+  var key=location.hash+'|'+(q?q.textContent:'');
+  var picked=sec&&sec.querySelector('.opt.chosen-ok,.opt.chosen-mid,.opt.chosen-no');
+  if(calm()||picked||key===lastKey)return;
+  lastKey=key;
+  var ps=[].slice.call(chat.querySelectorAll('p'));
+  ps.forEach(function(p){p.style.display='none'});
+  [q,o].forEach(function(e){if(e)e.classList.add('gate-hide')});
+  chat.classList.add('anim');
+  var i=0,timer=null,typing=null,done=false;
+  function finish(){
+   if(done)return;done=true;clearTimeout(timer);if(typing&&typing.parentNode)typing.remove();
+   ps.forEach(function(p){p.style.display=''});
+   [q,o].forEach(function(e){if(e){e.classList.add('gate-show');e.classList.remove('gate-hide')}});
+  }
+  chat.addEventListener('click',finish);
+  function next(){
+   if(done)return;
+   if(i>=ps.length){finish();return}
+   var p=ps[i],isThem=p.classList.contains('c-them'),len=(p.textContent||'').length;
+   function show(){if(typing&&typing.parentNode)typing.remove();p.style.display='';i++;timer=setTimeout(next,p.classList.contains('c-sys')?350:Math.min(900,350+len*9))}
+   if(isThem){typing=document.createElement('p');typing.className='c-typing';typing.innerHTML='<i></i><i></i><i></i>';chat.insertBefore(typing,p);p.style.display='none';timer=setTimeout(show,Math.min(1000,420+len*8))}
+   else show();
+  }
+  next();
+ }
+ function scan(){[].slice.call(document.querySelectorAll('.chat:not([data-seen])')).forEach(run)}
+ new MutationObserver(scan).observe(document.body,{childList:true,subtree:true});
+ scan();
+})();
+</script>
+
+</body>
+</html>

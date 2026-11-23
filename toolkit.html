@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Toolkit | WayFinder SG</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Scam Inbox, message checker, who-to-call guide, payslip decoder, move-out budget, contract reader and a stamp passport. Free, no account, runs on your device.">
+<meta name="theme-color" content="#070A11">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link rel="stylesheet" href="wf.css">
+<style>
+.tk-hero{border-bottom:3px solid var(--ink);padding-block:clamp(34px,6vw,72px) clamp(24px,4vw,40px);background:var(--paper)}
+.tk-hero h1{font-size:clamp(3rem,11vw,8rem);font-weight:800;line-height:.88;letter-spacing:-.02em}
+.tk-hero p{max-width:50ch;margin-top:18px;font-size:1.15rem}
+.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 67px);z-index:40;background:var(--bg);border-bottom:3px solid var(--ink)}
+.rail .in{display:flex;gap:8px;overflow-x:auto;padding-block:10px;scrollbar-width:none}
+.rail .in::-webkit-scrollbar{display:none}
+.rail button{font:inherit;font-weight:600;font-size:.92rem;white-space:nowrap;border:2px solid var(--ink);background:var(--paper);color:var(--ink);padding:7px 12px;cursor:pointer;min-height:42px;border-radius:0;display:inline-flex;gap:8px;align-items:center;flex:none}
+.rail button:hover{background:var(--hi);color:var(--on-hi)}
+.rail button[aria-current="true"]{background:var(--ink);color:var(--bg)}
+.wrap{padding-block:clamp(30px,5vw,60px) clamp(60px,8vw,110px)}
+.tools{display:grid;gap:22px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}
+.tool{display:grid;gap:12px;align-content:start;padding:20px;text-decoration:none;color:var(--ink);min-height:200px;text-align:left;font:inherit;cursor:pointer;transition:transform .15s var(--ease),box-shadow .15s var(--ease)}
+.tool:hover{transform:translate(-4px,-4px);box-shadow:inset 0 0 0 3px var(--paper),inset 0 0 0 4.5px var(--ink),10px 10px 0 var(--sh)}
+.tool .bd{width:52px;height:52px;display:grid;place-items:center;border:3px solid var(--ink);font-size:1.5rem}
+.tool:hover .bd{animation:jig .5s}
+@keyframes jig{25%{transform:rotate(-10deg)}75%{transform:rotate(10deg)}}
+.tool h3{font-size:1.8rem}.tool p{font-size:.98rem;line-height:1.4}.tool .mono{margin-top:auto}
+.daily{margin-top:34px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:clamp(18px,4vw,50px);align-items:center;padding:clamp(18px,3vw,30px)}
+@media (max-width:760px){.daily{grid-template-columns:minmax(0,1fr)}}
+.ph{padding:14px 16px;background:var(--bg);border:2.5px solid var(--ink);box-shadow:5px 5px 0 var(--sh)}
+.back{font:inherit;font-weight:700;background:none;border:0;color:var(--ink);cursor:pointer;display:inline-flex;gap:8px;align-items:center;padding:6px 0;min-height:44px;text-decoration:underline;text-underline-offset:4px}
+.ph-head{display:flex;gap:14px;flex-wrap:wrap;align-items:end;justify-content:space-between;margin-bottom:26px}
+.ph-head h2{font-size:clamp(2.2rem,6vw,4.4rem);max-width:16ch}
+.meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cols{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:clamp(20px,4vw,50px);align-items:start}
+@media (max-width:860px){.cols{grid-template-columns:minmax(0,1fr)}}
+.stack{display:grid;gap:16px}
+.box{border:2.5px solid var(--ink);padding:14px 16px;background:var(--paper);display:grid;gap:8px}
+.box.alert{border-color:var(--red);border-width:3px}
+.box.good{border-color:var(--l-docs);border-width:3px}
+.warn{font-size:.9rem;color:var(--mute)}
+a.src{font-weight:600;overflow-wrap:anywhere}
+.field{display:grid;gap:6px}
+.field label{font-weight:700}
+.field input[type=number],.field select,.field textarea{font:inherit;border:2.5px solid var(--ink);background:var(--paper);color:var(--ink);padding:10px 12px;min-height:46px;border-radius:0;width:100%}
+.field textarea{min-height:150px;resize:vertical}
+input[type=range]{width:100%;accent-color:var(--red);height:34px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,140%);z-index:300;background:var(--ink);color:var(--bg);padding:12px 18px;border:3px solid var(--hi);box-shadow:5px 5px 0 var(--red);display:flex;gap:10px;align-items:center;transition:transform .4s var(--ease);max-width:calc(100% - 28px)}
+.toast.on{transform:translate(-50%,0)}
+.tel{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
+/* inbox */
+#ib-x,#ib-d{scroll-margin-top:160px}
+.deck{position:relative;min-height:340px;touch-action:pan-y}
+.card{background:var(--paper);border:3px solid var(--ink);box-shadow:7px 7px 0 var(--sh);padding:22px 20px;display:grid;gap:12px;align-content:start;min-height:300px;position:relative;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:pan-y;will-change:transform}
+.card .who{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.card .body{font-size:1.28rem;line-height:1.32;overflow-wrap:anywhere}
+.card .lbl{position:absolute;top:14px;font-family:var(--display);font-weight:800;font-size:1.5rem;border:3px solid;padding:2px 10px;opacity:0;transform:rotate(-8deg)}
+.card .lbl.l{left:14px;color:var(--red);border-color:var(--red)}
+.card .lbl.r{right:14px;color:var(--l-docs);border-color:var(--l-docs);transform:rotate(8deg)}
+.ctl{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
+.dots{display:flex;gap:6px;margin-bottom:14px}.dots i{height:8px;flex:1;background:var(--rule);border:1.5px solid var(--ink)}.dots i.ok{background:var(--l-docs)}.dots i.no{background:var(--red)}.dots i.on{background:var(--ink)}
+mark{background:var(--hi);color:var(--on-hi);padding:0 2px;border-bottom:3px solid var(--ink)}
+mark[data-k="urgency"]{background:#FFD3A8}mark[data-k="link"]{background:#FFB3BD}mark[data-k="credential"]{background:#FF8D9B}mark[data-k="money"]{background:#BFE3FF}mark[data-k="authority"]{background:#D6C8FF}mark[data-k="toogood"]{background:var(--hi)}mark[data-k="secrecy"]{background:#FFE08A}mark[data-k="impersonation"]{background:#C8F0D8}
+.tally{display:grid;gap:8px}
+.tally div{display:flex;gap:10px;align-items:center}
+.tally b{font-family:var(--mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;min-width:9.5em}
+.tally i{display:block;height:16px;background:var(--red);border:2px solid var(--ink)}
+/* tree */
+.opts2{display:grid;gap:10px}
+.opt{font:inherit;font-weight:700;text-align:left;border:2.5px solid var(--ink);background:var(--paper);color:var(--ink);padding:15px 16px;cursor:pointer;min-height:56px;border-radius:0;font-size:1.06rem;box-shadow:4px 4px 0 var(--sh);transition:transform .12s,box-shadow .12s}
+.opt:hover{background:var(--hi);color:var(--on-hi)}
+.opt:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--sh)}
+.crumbs{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bignum{display:grid;gap:2px;border:3px solid var(--ink);padding:16px;text-decoration:none;color:var(--ink);background:var(--paper);box-shadow:5px 5px 0 var(--sh)}
+.bignum.red{background:var(--red);color:var(--on-red);border-color:var(--ink)}
+.bignum .n{font-family:var(--mono);font-weight:700;font-size:2.2rem;letter-spacing:.01em}
+.bignum .l{font-weight:700}.bignum .s{font-size:.88rem;opacity:.85}
+/* checks */
+.check{display:flex;gap:12px;align-items:flex-start;border:2.5px solid var(--ink);background:var(--paper);padding:12px 14px;cursor:pointer;min-height:52px}
+.check input{width:22px;height:22px;accent-color:var(--red);flex:none;margin-top:2px}
+.check span{display:grid;gap:2px}
+.check:has(input:checked){background:var(--hi);color:var(--on-hi)}
+.ring{display:flex;gap:14px;align-items:center}
+.bar{height:18px;border:2.5px solid var(--ink);background:var(--bg);position:relative;flex:1}
+.bar i{position:absolute;inset:0;background:var(--l-docs);transform-origin:left;transition:transform .5s var(--ease)}
+/* payslip */
+.stackbar{display:flex;height:64px;border:3px solid var(--ink);background:var(--bg);overflow:hidden}
+.stackbar div{display:grid;place-items:center;font-family:var(--mono);font-size:.7rem;font-weight:700;overflow:hidden;white-space:nowrap;transition:flex-basis .35s var(--ease);min-width:0;padding:0 4px}
+.tbl{width:100%;border-collapse:collapse}.tbl th,.tbl td{text-align:left;padding:10px 6px;border-bottom:1.5px solid var(--ink)}.tbl td{text-align:right;font-family:var(--mono);font-size:.9rem}
+.big{font-family:var(--display);font-weight:800;font-size:clamp(2rem,5vw,3.4rem);line-height:1;font-variation-settings:"wdth" 82}
+/* budget */
+.blocks{display:flex;flex-wrap:wrap;gap:10px}
+.blk{font:inherit;font-weight:700;border:2.5px solid var(--ink);background:var(--paper);color:var(--ink);padding:10px 14px;cursor:grab;display:inline-grid;gap:0;min-height:56px;border-radius:0;box-shadow:4px 4px 0 var(--sh);touch-action:none;user-select:none;-webkit-user-select:none;text-align:left}
+.blk small{font-family:var(--mono);font-size:.72rem;font-weight:500}
+.blk.added{background:var(--ink);color:var(--bg);box-shadow:none;opacity:.55}
+.blk.ghost{position:fixed;z-index:400;pointer-events:none;opacity:.92;transform:rotate(-3deg);box-shadow:8px 8px 0 var(--sh)}
+.bz{min-height:92px;border:3px dashed var(--ink);padding:10px;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start;background:var(--bg);transition:background .15s}
+.bz.over{background:var(--hi)}
+.bz .seg{border:2px solid var(--ink);background:var(--paper);padding:4px 9px;font-size:.85rem;font-weight:700;cursor:pointer;font:inherit;min-height:34px}
+.fill{height:30px;border:3px solid var(--ink);background:var(--bg);position:relative;overflow:hidden}
+.fill i{position:absolute;inset:0 auto 0 0;background:var(--l-docs);transition:width .35s var(--ease),background .2s;max-width:100%}
+.fill.over i{background:var(--red)}
+.nums2{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr))}
+/* contract */
+.letter{background:#FFFDF7;color:#14110F;border:3px solid var(--ink);box-shadow:7px 7px 0 var(--sh);padding:clamp(18px,3vw,30px);font-family:var(--serif);font-size:1.22rem;line-height:1.4;display:grid;gap:8px}
+.letter h4{font-family:var(--display);font-size:1.5rem}
+.cl{font:inherit;text-align:left;background:none;border:0;border-bottom:2px dashed #14110F55;color:inherit;cursor:pointer;padding:6px 4px;border-radius:0;display:block;width:100%}
+.cl:hover{background:var(--hi)}
+.cl.sel{background:var(--hi);outline:3px solid var(--ink)}
+.cl.flag{background:#FFD3D8}.cl.fine{background:#D5F2DF}
+.cl .tag{font-family:var(--mono);font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;margin-left:8px;border:1.5px solid;padding:1px 6px}
+/* share */
+.sharec{border:3px solid var(--ink);box-shadow:7px 7px 0 var(--sh);max-width:360px;width:100%;height:auto;background:var(--paper)}
+.pp-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,130px),1fr))}
+.pst{aspect-ratio:1/1;border:2.5px dashed var(--mute);display:grid;align-content:center;justify-items:center;gap:6px;padding:8px;text-align:center;text-decoration:none;color:var(--mute);position:relative;font-size:.8rem;line-height:1.15;font-weight:600}
+.pst .ico{font-size:1.7rem}
+.pst.got{border:3px solid var(--ink);color:var(--on-c);background:var(--c);box-shadow:4px 4px 0 var(--sh)}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;800;900&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,700;0,800;1,500&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="assets/scam-skin.css"><script>try{var _s=JSON.parse(localStorage.getItem("wf2.state"));if(_s&&_s.theme==="light"&&!localStorage.getItem("wfl.theme"))document.documentElement.setAttribute("data-theme","light")}catch(e){}</script></head>
+<body><nav class="wfbar" aria-label="WayFinder SG"><a href="index.html">WayFinder SG home</a><a href="scam-shield/index.html">Scam Shield</a><a href="guides/scams-basics/index.html">Scam basics guide</a><a href="sources/index.html">Sources</a></nav>
+<button class="skip" id="skip" type="button">Skip to content</button>
+<div class="strip" role="region" aria-label="Emergency numbers"><div class="in"><span>In an emergency: Police <b>999</b> · Ambulance or fire <b>995</b></span><a href="app.html#help-emergency">What to do</a></div></div>
+<header class="hd">
+  <div class="in">
+    <a class="brand" href="index.html" aria-label="WayFinder SG, home">
+      <svg width="42" height="30" viewBox="0 0 42 30" aria-hidden="true" style="flex:none"><path d="M2 5H18L26 25H36" fill="none" stroke="var(--l-money)" stroke-width="4"/><path d="M2 11H15L23 25H36" fill="none" stroke="var(--l-work)" stroke-width="4"/><path d="M2 17H12L20 25H36" fill="none" stroke="var(--l-housing)" stroke-width="4"/><circle cx="37" cy="25" r="4" fill="var(--paper)" stroke="var(--ink)" stroke-width="2.5"/></svg>
+      <b>WayFinder SG</b>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a class="lk" href="index.html">Home</a><a class="lk" href="toolkit.html" aria-current="page">Toolkit</a><a class="lk" href="app.html#learn">Lessons</a><a class="lk" href="sources/index.html">Sources</a>
+      <button class="btn red mag" type="button" data-help aria-haspopup="dialog"><span class="sq"></span><span class="lg">I need help now</span><span class="sm">Help</span></button>
+    </nav>
+  </div>
+  <div class="prog" aria-hidden="true"><b></b><b></b><b></b><b></b><b></b></div>
+</header>
+
+<main id="main" tabindex="-1">
+<section class="tk-hero"><div class="in">
+  <p class="mono mute kicker">The toolkit</p>
+  <h1 style="margin-top:16px">Use it when it is happening.</h1>
+  <p>Seven things you can open mid-moment, plus a passport for the stamps you earn. Everything runs on your device. Nothing is sent anywhere.</p>
+</div></section>
+<div class="rail"><div class="in" id="rail" role="tablist" aria-label="Choose a tool"></div></div>
+<div class="wrap"><div class="in" id="stage" aria-live="polite"></div></div>
+</main>
+
+<footer>
+  <div class="in">
+    <div class="fgrid">
+      <div><h4>Quick help</h4><ul><li><a href="toolkit.html#call">Who do I call?</a></li><li><a href="toolkit.html#scammed">I think I got scammed</a></li><li><a href="app.html#help-support">I need support</a></li></ul></div>
+      <div><h4>Learn</h4><ul><li><a href="app.html#learn">Five tracks</a></li><li><a href="app.html#sources">Source library</a></li><li><a href="app.html#educators">For educators</a></li></ul></div>
+      <div><h4>About</h4><ul><li><a href="app.html#corrections">Report a correction</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="terms.html">Terms</a></li></ul></div>
+      <div><h4>Display</h4>
+        <div class="opts" role="group" aria-label="Theme"><button type="button" data-theme-set="auto" aria-pressed="true">Auto</button><button type="button" data-theme-set="light" aria-pressed="false">Light</button><button type="button" data-theme-set="dark" aria-pressed="false">Dark</button></div>
+        <div class="opts" style="margin-top:8px"><button type="button" id="calm" aria-pressed="false">Calm mode: off</button></div>
+      </div>
+    </div>
+    <div class="disc"><p>WayFinder SG is a student-made learning project. It is not a government service, legal adviser, financial adviser, medical adviser or emergency service. These tools give pattern hints and arithmetic, never verdicts. In an emergency call 999 or 995. Pilot build, last checked 7 Nov 2026.</p></div>
+  </div>
+</footer>
+<div class="toast" id="toast" role="status"></div>
+<div class="cur" id="cur" aria-hidden="true"></div>
+<div class="wipe" id="wipe" aria-hidden="true"><i style="top:0;background:var(--l-money)"></i><i style="top:20%;background:var(--l-docs);transition-delay:.06s"></i><i style="top:40%;background:var(--l-safety);transition-delay:.12s"></i><i style="top:60%;background:var(--l-work);transition-delay:.18s"></i><i style="top:80%;background:var(--l-housing);transition-delay:.24s"></i></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://unpkg.com/lenis@1.1.20/dist/lenis.min.js"></script>
+<script src="wf.js"></script>
+<script src="toolkit.js"></script>
+</body>
+</html>
