@@ -160,3 +160,8 @@ html{scroll-padding-top:84px;scrollbar-color:rgba(233,196,106,.45) transparent;s
 :root:root:root img,:root:root:root svg{-webkit-user-drag:none}
 .brand{white-space:nowrap}
 @media (max-width:520px){.theme-btn .tb-t{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.theme-btn{padding:0;min-width:44px}.brand{font-size:1.05rem}}
+.motion-btn{gap:8px;padding:0 16px;display:inline-flex;align-items:center;justify-content:center;border-color:var(--signal)!important;color:var(--signal)}
+.motion-btn[hidden]{display:none!important}
+.motion-btn svg{width:14px;height:14px;flex:none}
+@media (max-width:520px){.motion-btn .tb-t{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.motion-btn{padding:0;min-width:44px}}
+.linkbtn{background:none;border:0;padding:6px 0;color:var(--signal);font:inherit;text-decoration:underline;text-underline-offset:.22em;cursor:pointer;min-height:44px}

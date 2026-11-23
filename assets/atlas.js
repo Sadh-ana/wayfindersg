@@ -33,6 +33,12 @@ $$('input[name="theme"]').forEach(function(i){i.addEventListener('change',functi
 var tb=$('#theme-btn');
 function paintTheme(){if(!tb)return;var light=S.theme==='light';tb.setAttribute('aria-label',light?'Switch to dark theme':'Switch to light theme');tb.setAttribute('data-mode',light?'light':'dark');var t=$('.tb-t',tb);if(t)t.textContent=light?'Dark':'Light';var m=$('meta[name="theme-color"]');if(m)m.setAttribute('content',light?'#F6F0E3':'#070A11')}
 if(tb){paintTheme();tb.addEventListener('click',function(){H.classList.add('theme-fade');S.theme=S.theme==='light'?'dark':'light';save();applyPrefs();paintTheme();setTimeout(function(){H.classList.remove('theme-fade')},450)})}
+/* animations on/off (replaces the old Display panel) */
+function motionNow(){return H.getAttribute('data-motion')}
+function paintMotion(){var on=motionNow()==='full',f=$('#motion-ftr'),h=$('#motion-btn');if(f){f.textContent=on?'Animations: on (turn off)':'Animations: off (turn on)'}if(h){h.hidden=on}}
+function flipMotion(){var on=motionNow()==='full';S.motion=on?'reduced':'full';save();if(D.body.getAttribute('data-page')==='home'){location.reload()}else{applyPrefs();paintMotion();toast(on?'Animations off':'Animations on')}}
+['#motion-btn','#motion-ftr'].forEach(function(q){var b=$(q);if(b)b.addEventListener('click',flipMotion)});
+paintMotion();
 /* nav + settings */
 var mb=$('.menu-btn'),nav=$('.nav'),sb=$('#settings-btn'),sp=$('#settings');
 if(mb&&nav)mb.addEventListener('click',function(){var o=nav.getAttribute('data-open')!=='true';nav.setAttribute('data-open',o);mb.setAttribute('aria-expanded',o)});
